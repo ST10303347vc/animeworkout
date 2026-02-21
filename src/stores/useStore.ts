@@ -11,17 +11,33 @@ function getTodayStr(): string {
     return new Date().toISOString().split('T')[0];
 }
 
-/** Ensure user has settings (migration from old localStorage) */
+/** Ensure user has all required fields (migration from old localStorage) */
 function migrateProfile(user: UserProfile): UserProfile {
-    if (!user.settings) {
-        return {
-            ...user,
-            settings: { appMode: 'full', enabledPillars: [...ALL_PILLARS] },
-            customTasks: user.customTasks || [],
-            dailyHabits: user.dailyHabits || []
-        };
+    let needsMigration = false;
+    const migrated = { ...user };
+
+    if (!migrated.settings) {
+        migrated.settings = { appMode: 'full', enabledPillars: [...ALL_PILLARS] };
+        needsMigration = true;
     }
-    return user;
+
+    if (!migrated.pillarXp) {
+        const base = Math.floor((migrated.totalXp || 0) / 4);
+        migrated.pillarXp = { physical: base, mental: base, wealth: base, vitality: base };
+        needsMigration = true;
+    }
+
+    if (!migrated.customTasks) {
+        migrated.customTasks = [];
+        needsMigration = true;
+    }
+
+    if (!migrated.dailyHabits) {
+        migrated.dailyHabits = [];
+        needsMigration = true;
+    }
+
+    return needsMigration ? migrated : user;
 }
 
 // ── Store Interface ────────────────────────────────────────────────

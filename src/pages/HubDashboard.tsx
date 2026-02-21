@@ -55,22 +55,25 @@ export const HubDashboard = () => {
     if (!user) return null;
 
     const sensei = MOCK_SENSEIS.find(s => s.id === user.senseiId);
-    const dominantAura = getDominantAura(user.pillarXp);
+
+    // Safely fallback if pillarXp is missing (e.g. during state migration/rehydration)
+    const pillarXp = user.pillarXp || { physical: 0, mental: 0, wealth: 0, vitality: 0 };
+    const dominantAura = getDominantAura(pillarXp);
 
     const pillars = enabledPillars.map(id => ({
         id,
         ...PILLAR_META[id],
-        xp: user.pillarXp[id]
+        xp: pillarXp[id]
     }));
 
     // ── Radar / Bar data ───────────────────────────────────────────
     const pillarBalanceData = useMemo(() => {
         return enabledPillars.map(p => ({
             subject: p.charAt(0).toUpperCase() + p.slice(1),
-            A: user.pillarXp[p],
-            fullMark: Math.max(100, ...enabledPillars.map(ep => user.pillarXp[ep])) * 1.1
+            A: pillarXp[p],
+            fullMark: Math.max(100, ...enabledPillars.map(ep => pillarXp[ep])) * 1.1
         }));
-    }, [user.pillarXp, enabledPillars]);
+    }, [pillarXp, enabledPillars]);
 
     const showRadar = enabledPillars.length >= 3;
     const showBars = enabledPillars.length === 2;
@@ -271,8 +274,8 @@ export const HubDashboard = () => {
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
                             className="glass-panel p-6 mx-auto max-w-md space-y-6">
                             {enabledPillars.map(p => {
-                                const xp = user.pillarXp[p];
-                                const maxXp = Math.max(100, ...enabledPillars.map(ep => user.pillarXp[ep])) * 1.1;
+                                const xp = pillarXp[p];
+                                const maxXp = Math.max(100, ...enabledPillars.map(ep => pillarXp[ep])) * 1.1;
                                 const pct = Math.min(100, (xp / maxXp) * 100);
                                 return (
                                     <div key={p}>

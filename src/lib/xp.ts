@@ -25,7 +25,15 @@ export const calculateGlobalLevel = (pillarXp: PillarXP): number => {
 };
 
 export const getDominantAura = (pillarXp: PillarXP): AuraConfig => {
+    if (!pillarXp) {
+        return { name: 'Neutral', color: 'bg-zinc-500', glowHex: '#71717a', pillar: 'neutral' };
+    }
+
     const entries = Object.entries(pillarXp) as [Pillar, number][];
+    if (entries.length === 0) {
+        return { name: 'Neutral', color: 'bg-zinc-500', glowHex: '#71717a', pillar: 'neutral' };
+    }
+
     entries.sort((a, b) => b[1] - a[1]);
     const dominant = entries[0][0];
 
