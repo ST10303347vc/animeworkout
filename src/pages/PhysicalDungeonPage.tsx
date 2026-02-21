@@ -57,14 +57,15 @@ export const PhysicalDungeonPage = () => {
                 </button>
             </div>
 
-            {/* Placeholder for future features */}
-            <div className="glass-panel p-8 text-center border-dashed border-2 border-white/10 rounded-2xl">
-                <Dumbbell className="mx-auto text-zinc-600 mb-4 animate-pulse" size={48} />
-                <h3 className="text-xl font-bold text-zinc-300 mb-2 uppercase tracking-widest">Dungeon Expanding...</h3>
-                <p className="text-zinc-500 max-w-md mx-auto">
-                    The Custom Exercise Architecture, Random Encounters, and Enhanced Rest Timer are currently under construction in this sector.
-                </p>
-            </div>
+            {/* Skill Tree Link */}
+            <button
+                onClick={() => navigate('/skills')}
+                className="w-full glass-panel p-6 text-center border border-white/5 hover:border-neon-purple/50 transition-all rounded-2xl group"
+            >
+                <Dumbbell className="mx-auto text-neon-purple mb-3 group-hover:scale-110 transition-transform" size={32} />
+                <h3 className="text-lg font-bold text-zinc-200 uppercase tracking-widest">View Skill Trees</h3>
+                <p className="text-zinc-500 text-sm mt-1">Unlock new abilities as you level up</p>
+            </button>
         </div>
     );
 };

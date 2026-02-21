@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useStore } from '@/stores/useStore';
 import { MOCK_SENSEIS } from '@/data/mockData';
 import { getDominantAura } from '@/lib/xp';
@@ -9,6 +9,10 @@ import { Dumbbell, Brain, Wallet, Heart, Calendar } from 'lucide-react';
 import { DailyQuestCard } from '@/components/hud/DailyQuestCard';
 import { WeeklyRecapModal } from '@/components/hud/WeeklyRecapModal';
 import { motion } from 'framer-motion';
+import {
+    RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+    Tooltip, ResponsiveContainer
+} from 'recharts';
 
 export const HubDashboard = () => {
     const user = useStore(state => state.user);
@@ -19,6 +23,17 @@ export const HubDashboard = () => {
 
     const sensei = MOCK_SENSEIS.find(s => s.id === user.senseiId)!;
     const dominantAura = getDominantAura(user.pillarXp);
+
+    const pillarBalanceData = useMemo(() => {
+        const xp = user.pillarXp;
+        const maxXp = Math.max(100, xp.physical, xp.mental, xp.wealth, xp.vitality) * 1.1;
+        return [
+            { subject: 'Physical', A: xp.physical, fullMark: maxXp },
+            { subject: 'Mental', A: xp.mental, fullMark: maxXp },
+            { subject: 'Wealth', A: xp.wealth, fullMark: maxXp },
+            { subject: 'Vitality', A: xp.vitality, fullMark: maxXp },
+        ];
+    }, [user.pillarXp]);
 
     const pillars = [
         { id: 'physical', title: 'The Vanguard', icon: Dumbbell, color: 'text-neon-pink', bgGlow: 'bg-neon-pink text-glow-pink', xp: user.pillarXp.physical },
@@ -89,6 +104,31 @@ export const HubDashboard = () => {
                         );
                     })}
                 </div>
+            </div>
+
+            {/* Pillar Balance Radar */}
+            <div className="mb-12">
+                <h2 className="text-lg font-bold text-zinc-400 uppercase tracking-widest mb-6 flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-neon-purple mr-3 shadow-[0_0_10px_rgba(188,19,254,0.8)]"></span>
+                    Pillar Balance
+                </h2>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                    className="glass-panel p-4 h-[280px] mx-auto max-w-md"
+                >
+                    <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={pillarBalanceData}>
+                            <PolarGrid stroke="#ffffff20" />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#ffffff80', fontSize: 11, fontWeight: 'bold' }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
+                            <Radar name="XP" dataKey="A" stroke="#bc13fe" fill="#bc13fe" fillOpacity={0.4} strokeWidth={2} />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#09090b', border: '1px solid #bc13fe', borderRadius: '8px' }}
+                                itemStyle={{ color: '#bc13fe', fontWeight: 'bold' }}
+                            />
+                        </RadarChart>
+                    </ResponsiveContainer>
+                </motion.div>
             </div>
 
             {/* Daily Quests */}
