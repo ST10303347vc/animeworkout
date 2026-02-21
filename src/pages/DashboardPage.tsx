@@ -3,9 +3,10 @@ import { MOCK_SENSEIS } from '@/data/mockData';
 import { PowerLevelRing } from '@/components/hud/PowerLevelRing';
 import { DailyQuestCard } from '@/components/hud/DailyQuestCard';
 import { motion } from 'framer-motion';
-import { Flame, Dumbbell, Zap, Hammer, GitMerge, History } from 'lucide-react';
+import { Flame, Dumbbell, Zap, Hammer, GitMerge, History, BarChart2, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { soundFx } from '@/utils/sound';
+import { shareElementAsImage } from '@/utils/shareImage';
 
 export const DashboardPage = () => {
     const navigate = useNavigate();
@@ -17,8 +18,8 @@ export const DashboardPage = () => {
 
     const sensei = MOCK_SENSEIS.find(s => s.id === user.senseiId)!;
 
-    // Calculate level curve thresholds
-    const nextLevelXp = 100 * Math.pow(user.level, 1.5);
+    // Calculate level curve thresholds based on Physical Pillar for now (pre-HubDashboard refactor)
+    const nextLevelXp = 100 * Math.pow(user.globalLevel || 1, 1.5);
 
     return (
         <div className="min-h-screen bg-bg-dark pt-12 pb-24 px-6 md:px-12">
@@ -49,11 +50,20 @@ export const DashboardPage = () => {
                         <div className={`w-12 h-12 rounded-full border-2 bg-surface flex items-center justify-center font-bold text-lg shadow-[0_0_15px_rgba(255,255,255,0.1)] ${sensei.glowColor.split(' ')[1]}`}>
                             {sensei.name[0]}
                         </div>
+                        <button
+                            onClick={() => {
+                                soundFx.playClick();
+                                shareElementAsImage('share-card');
+                            }}
+                            className="p-2 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors border border-white/10"
+                        >
+                            <Share2 size={20} className="text-zinc-300" />
+                        </button>
                     </div>
                 </header>
 
                 {/* HUD Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div id="share-card" className="grid grid-cols-1 lg:grid-cols-3 gap-8 rounded-xl bg-bg-dark">
 
                     {/* Column 1: Power Level */}
                     <motion.div
@@ -63,8 +73,8 @@ export const DashboardPage = () => {
                     >
                         <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-6">Current Power Level</h2>
                         <PowerLevelRing
-                            level={user.level}
-                            xp={user.totalXp}
+                            level={user.globalLevel || 1}
+                            xp={user.pillarXp?.physical || 0}
                             nextLevelXp={nextLevelXp}
                             glowColor={
                                 sensei.glowColor.includes('blue') ? '#00f0ff' :
@@ -158,6 +168,14 @@ export const DashboardPage = () => {
                                 <GitMerge className="text-neon-purple mb-2" size={24} />
                                 <span className="text-zinc-300 font-bold tracking-widest uppercase text-xs">Skill Tree</span>
                                 <span className="text-zinc-600 font-mono text-[10px] mt-1">Calisthenics</span>
+                            </button>
+
+                            <button
+                                onClick={() => navigate('/analytics')}
+                                className="w-full lg:col-span-2 relative overflow-hidden rounded-2xl glass-panel p-4 flex items-center justify-center hover:bg-zinc-800/80 transition-colors border border-white/5 space-x-2"
+                            >
+                                <BarChart2 className="text-neon-blue" size={20} />
+                                <span className="text-zinc-300 font-bold tracking-widest uppercase text-xs">Combat Analytics</span>
                             </button>
                         </motion.div>
 

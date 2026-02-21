@@ -1,4 +1,5 @@
-import { Trophy, Flame, Star, Zap, Target } from 'lucide-react';
+import { Trophy, Flame, Star, Zap, Target, Scale } from 'lucide-react';
+import { calculatePillarLevel } from '@/lib/xp';
 
 export interface AchievementDef {
     id: string;
@@ -16,7 +17,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
         description: 'Complete your first Daily Quest.',
         icon: Target,
         color: 'text-neon-pink glow-pink',
-        condition: (state) => state.user?.totalXp > 0
+        condition: (state) => (state.user?.pillarXp?.physical || 0) > 0
     },
     {
         id: 'a_dedication',
@@ -32,7 +33,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
         description: 'Reach Power Level 5.',
         icon: Zap,
         color: 'text-neon-blue glow-blue',
-        condition: (state) => (state.user?.level || 0) >= 5
+        condition: (state) => (state.user?.globalLevel || 0) >= 5
     },
     {
         id: 'a_creator',
@@ -48,6 +49,21 @@ export const ACHIEVEMENTS: AchievementDef[] = [
         description: 'Accumulate 10,000 Total XP.',
         icon: Trophy,
         color: 'text-white glow-white',
-        condition: (state) => (state.user?.totalXp || 0) >= 10000
+        condition: (state) => (state.user?.pillarXp?.physical || 0) >= 10000
+    },
+    {
+        id: 'a_balanced_warrior',
+        title: 'Balanced Warrior',
+        description: 'Reach Level 5 in all Four Pillars.',
+        icon: Scale,
+        color: 'text-emerald-400 glow-green',
+        condition: (state) => {
+            const xp = state.user?.pillarXp;
+            if (!xp) return false;
+            return calculatePillarLevel(xp.physical) >= 5 &&
+                calculatePillarLevel(xp.mental) >= 5 &&
+                calculatePillarLevel(xp.wealth) >= 5 &&
+                calculatePillarLevel(xp.vitality) >= 5;
+        }
     }
 ];

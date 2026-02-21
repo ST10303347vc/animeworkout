@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 
-export const ParticleAura = ({ color }: { color: string }) => {
-    // Generate 15 particles
-    const particles = Array.from({ length: 15 }).map((_, i) => ({
+export const ParticleAura = ({ color, count = 15 }: { color: string; count?: number }) => {
+    // Generate particles
+    const particles = Array.from({ length: count }).map((_, i) => ({
         id: i,
         size: Math.random() * 4 + 2, // 2px to 6px
         left: `${Math.random() * 100}%`,

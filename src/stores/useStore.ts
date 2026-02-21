@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { UserProfile, DailyQuest } from '@/types';
+import { UserProfile, DailyQuest, Pillar, PillarTask } from '@/types';
+import { calculateGlobalLevel } from '@/lib/xp';
 import { MOCK_QUESTS } from '@/data/mockData';
 import { ACHIEVEMENTS } from '@/data/achievements';
 
@@ -12,9 +13,17 @@ interface AppState {
     setSensei: (senseiId: string) => void;
 
     // Progression
+    addPillarXp: (pillar: Pillar, amount: number) => void;
+
+    // Legacy mapping support for components still calling addXp
     addXp: (amount: number) => void;
+
     logWorkout: (workoutName: string, xpEarned: number) => void;
     addWorkout: (name: string, isCustom: boolean, exercises: { id: string; exerciseId: string; sets: number; reps: number; order: number }[]) => void;
+    logTask: (task: Omit<PillarTask, 'id' | 'completedAt'>) => void;
+
+    // Onboarding
+    completeTutorial: () => void;
 
     // Quests & Achievements
     quests: DailyQuest[];
@@ -37,8 +46,8 @@ export const useStore = create<AppState>()(
                 user: {
                     id: `u_${Date.now()}`,
                     displayName: username,
-                    level: 1,
-                    totalXp: 0,
+                    pillarXp: { physical: 0, mental: 0, wealth: 0, vitality: 0 },
+                    globalLevel: 1,
                     currentStreak: 1
                 }
             }),
@@ -48,24 +57,47 @@ export const useStore = create<AppState>()(
             })),
 
             // Progression
-            addXp: (amount: number) => set((state) => {
+            addPillarXp: (pillar: Pillar, amount: number) => set((state) => {
                 if (!state.user) return state;
-                const newTotalXp = state.user.totalXp + amount;
-                // Basic level formula: XP to reach level N = 100 * N^1.5
-                // So Level = (XP / 100)^(1/1.5)
-                const calculateLevel = (xp: number) => Math.floor(Math.pow(xp / 100, 1 / 1.5)) || 1;
-                const newLevel = calculateLevel(newTotalXp);
+
+                // Handle legacy state migration seamlessly if needed
+                const currentPillarXp = state.user.pillarXp || {
+                    physical: state.user.totalXp || 0,
+                    mental: 0,
+                    wealth: 0,
+                    vitality: 0
+                };
+
+                const updatedPillarXp = {
+                    ...currentPillarXp,
+                    [pillar]: currentPillarXp[pillar] + amount
+                };
+
+                const newGlobalLevel = calculateGlobalLevel(updatedPillarXp);
 
                 const newState = {
                     user: {
                         ...state.user,
-                        totalXp: newTotalXp,
-                        level: Math.max(state.user.level, newLevel)
+                        pillarXp: updatedPillarXp,
+                        globalLevel: Math.max(state.user.globalLevel || state.user.level || 1, newGlobalLevel)
                     }
                 };
+
                 setTimeout(() => get().checkAchievements(), 0);
                 return newState;
             }),
+
+            completeTutorial: () => set((state) => {
+                if (!state.user) return state;
+                return {
+                    user: {
+                        ...state.user,
+                        hasSeenTutorial: true
+                    }
+                };
+            }),
+
+            addXp: (amount: number) => get().addPillarXp('physical', amount), // Shim for older components
 
             logWorkout: (workoutName, xpEarned) => set((state) => {
                 if (!state.user) return state;
@@ -81,6 +113,26 @@ export const useStore = create<AppState>()(
                         battleLog: [newLog, ...(state.user.battleLog || [])]
                     }
                 };
+            }),
+
+            logTask: (task: Omit<PillarTask, 'id' | 'completedAt'>) => set((state) => {
+                if (!state.user) return state;
+                const newTask: PillarTask = {
+                    ...task,
+                    id: `task-${Date.now()}`,
+                    completedAt: new Date().toISOString()
+                };
+
+                // Grant XP
+                get().addPillarXp(newTask.pillar, newTask.xpReward);
+
+                const newState = {
+                    user: {
+                        ...state.user,
+                        taskLog: [newTask, ...(state.user.taskLog || [])]
+                    }
+                };
+                return newState;
             }),
 
             addWorkout: (name, isCustom, exercises) => set((state) => {
@@ -107,8 +159,8 @@ export const useStore = create<AppState>()(
                 const quest = state.quests.find(q => q.id === questId);
                 if (!quest || quest.isCompleted) return state;
 
-                // Add XP reward directly here or trigger via side-effect. We'll do it together:
-                get().addXp(quest.xpReward);
+                // Add XP reward to the specific pillar
+                get().addPillarXp(quest.pillar, quest.xpReward);
 
                 const newState = {
                     quests: state.quests.map(q =>

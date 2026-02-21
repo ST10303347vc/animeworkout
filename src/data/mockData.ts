@@ -116,15 +116,33 @@ export const MOCK_QUESTS: DailyQuest[] = [
     {
         id: 'q_1',
         date: todayStr,
-        questDescription: 'Complete any Workout Session',
+        pillar: 'physical',
+        questDescription: 'Complete a Vanguard Workout',
         isCompleted: false,
         xpReward: 50
     },
     {
         id: 'q_2',
         date: todayStr,
-        questDescription: 'Do 50 Push-ups total',
+        pillar: 'mental',
+        questDescription: 'Read 10 pages of a book',
         isCompleted: false,
         xpReward: 30
+    },
+    {
+        id: 'q_3',
+        date: todayStr,
+        pillar: 'wealth',
+        questDescription: 'Complete 1 Deep Work session',
+        isCompleted: false,
+        xpReward: 40
+    },
+    {
+        id: 'q_4',
+        date: todayStr,
+        pillar: 'vitality',
+        questDescription: 'Drink 2L of Water',
+        isCompleted: false,
+        xpReward: 20
     }
 ];

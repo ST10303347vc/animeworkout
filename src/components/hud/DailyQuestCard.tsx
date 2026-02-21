@@ -1,7 +1,14 @@
 import { DailyQuest } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, Dumbbell, Brain, Wallet, Heart } from 'lucide-react';
 import clsx from 'clsx';
+
+const PILLAR_CONFIG = {
+    physical: { icon: Dumbbell, color: 'text-neon-pink', bg: 'bg-neon-pink/10', border: 'border-neon-pink/20' },
+    mental: { icon: Brain, color: 'text-neon-blue', bg: 'bg-neon-blue/10', border: 'border-neon-blue/20' },
+    wealth: { icon: Wallet, color: 'text-neon-gold', bg: 'bg-neon-gold/10', border: 'border-neon-gold/20' },
+    vitality: { icon: Heart, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' }
+};
 
 interface Props {
     quest: DailyQuest;
@@ -9,6 +16,11 @@ interface Props {
 }
 
 export const DailyQuestCard: React.FC<Props> = ({ quest, onComplete }) => {
+    const config = PILLAR_CONFIG[quest.pillar];
+    const bgClass = quest.isCompleted ? "bg-zinc-800" : config.bg;
+    const textClass = quest.isCompleted ? "text-zinc-600" : config.color;
+    const borderClass = quest.isCompleted ? "border-transparent" : config.border;
+
     return (
         <motion.div
             layout
@@ -41,9 +53,10 @@ export const DailyQuestCard: React.FC<Props> = ({ quest, onComplete }) => {
                             key="unchecked"
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            className="text-zinc-600 hover:text-white transition-colors"
+                            className={clsx("transition-colors flex items-center justify-center relative", config.color)}
                         >
-                            <Circle size={28} />
+                            <Circle size={28} className="opacity-50" />
+                            <config.icon size={14} className="absolute" />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -56,14 +69,13 @@ export const DailyQuestCard: React.FC<Props> = ({ quest, onComplete }) => {
                 )}>
                     {quest.questDescription}
                 </p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1">{quest.pillar}</p>
             </div>
 
             <div className="flex-shrink-0 ml-4">
                 <span className={clsx(
-                    "px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase",
-                    quest.isCompleted
-                        ? "bg-zinc-800 text-zinc-600"
-                        : "bg-neon-blue/10 text-neon-blue border border-neon-blue/20"
+                    "px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase border",
+                    bgClass, textClass, borderClass
                 )}>
                     +{quest.xpReward} XP
                 </span>

@@ -16,7 +16,7 @@ export const RestTimer = ({ durationSec, onComplete }: Props) => {
 
     useEffect(() => {
         if (timeLeft <= 0) {
-            soundFx.playTimerEnd();
+            soundFx.playHover(); // Use hover sound as a placeholder for a "sword shing" ping
             onComplete();
             return;
         }

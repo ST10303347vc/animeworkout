@@ -6,13 +6,13 @@ import { soundFx } from '@/utils/sound';
 
 export const LimitBreakOverlay = () => {
     const user = useStore(state => state.user);
-    const [prevLevel, setPrevLevel] = useState(user?.level || 1);
+    const [prevLevel, setPrevLevel] = useState(user?.globalLevel || 1);
     const [isLevelingUp, setIsLevelingUp] = useState(false);
 
     useEffect(() => {
-        if (user && user.level > prevLevel) {
+        if (user && user.globalLevel > prevLevel) {
             setIsLevelingUp(true);
-            setPrevLevel(user.level);
+            setPrevLevel(user.globalLevel);
             soundFx.playLevelUp();
 
             // Auto-hide after animation sequence
@@ -20,7 +20,7 @@ export const LimitBreakOverlay = () => {
                 setIsLevelingUp(false);
             }, 4500);
         }
-    }, [user?.level, prevLevel]);
+    }, [user?.globalLevel, prevLevel]);
 
     if (!user || (!isLevelingUp && false)) return null; // Remove && false in production, kept true for easy demo if needed, wait, fixing that.
 
@@ -92,7 +92,7 @@ export const LimitBreakOverlay = () => {
                                 className="px-6 py-2 rounded-xl text-4xl font-black text-bg-dark"
                                 style={{ backgroundColor: glowHex, boxShadow: `0 0 30px ${glowHex}` }}
                             >
-                                {user.level}
+                                {user.globalLevel}
                             </div>
                         </motion.div>
 
