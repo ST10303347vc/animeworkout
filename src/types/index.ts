@@ -1,6 +1,7 @@
 export type Rank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 export type ExerciseType = 'calisthenics' | 'gym';
 export type Pillar = 'physical' | 'mental' | 'wealth' | 'vitality';
+export type AppMode = 'tasks-only' | 'custom' | 'full';
 
 export interface PillarXP {
     physical: number;
@@ -16,6 +17,35 @@ export interface PillarTask {
     description: string;
     xpReward: number;
     completedAt?: string;
+}
+
+// ── Custom Task (new system) ───────────────────────────────────────
+export interface CustomTask {
+    id: string;
+    title: string;
+    pillar: Pillar | 'general';  // Can be assigned to a pillar or general
+    difficulty: number;          // 1–10
+    xpReward: number;            // Auto-calculated from difficulty
+    status: 'active' | 'completed';
+    timerDuration?: number;      // Optional countdown seconds (for timed tasks)
+    createdAt: string;
+    completedAt?: string;
+}
+
+// ── Daily Habit ────────────────────────────────────────────────────
+export interface DailyHabit {
+    id: string;
+    title: string;
+    pillar: Pillar | 'general';
+    difficulty: number;          // 1–10
+    xpReward: number;
+    lastCompletedDate?: string;  // ISO date string (YYYY-MM-DD)
+}
+
+// ── User Settings ──────────────────────────────────────────────────
+export interface UserSettings {
+    appMode: AppMode;
+    enabledPillars: Pillar[];    // Which pillars are active
 }
 
 export interface AuraConfig {
@@ -40,6 +70,8 @@ export interface UserProfile {
 
     currentStreak: number;
     hasSeenTutorial?: boolean;
+    settings: UserSettings;
+
     customWorkouts?: Workout[];
     unlockedAchievements?: string[];
     battleLog?: Array<{
@@ -49,6 +81,8 @@ export interface UserProfile {
         xpEarned: number;
     }>;
     taskLog?: PillarTask[];
+    customTasks?: CustomTask[];
+    dailyHabits?: DailyHabit[];
 }
 
 export interface Exercise {
@@ -92,4 +126,11 @@ export interface Sensei {
     quote: string;
     imagePath: string;
     glowColor: string;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+export const ALL_PILLARS: Pillar[] = ['physical', 'mental', 'wealth', 'vitality'];
+
+export function calcXpFromDifficulty(difficulty: number): number {
+    return Math.round(5 + Math.max(1, Math.min(10, difficulty)) * 8);
 }

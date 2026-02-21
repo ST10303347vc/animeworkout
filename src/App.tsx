@@ -14,6 +14,7 @@ import { LimitBreakOverlay } from './components/effects/LimitBreakOverlay';
 import { AchievementToast } from './components/effects/AchievementToast';
 import { TaskLoggerPage } from './pages/TaskLoggerPage';
 import { HabitTrackerPage } from './pages/HabitTrackerPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 function App() {
   return (
@@ -37,7 +38,7 @@ function App() {
               <Route path="/mental" element={<TaskLoggerPage pillar="mental" />} />
               <Route path="/wealth" element={<TaskLoggerPage pillar="wealth" />} />
               <Route path="/vitality" element={<HabitTrackerPage />} />
-              <Route path="/profile" element={<div className="p-12 text-center text-white"><h1 className="text-3xl text-zinc-400 font-bold">Profile</h1></div>} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
 
             {/* Direct Full-Screen Routes (No Tabs) */}

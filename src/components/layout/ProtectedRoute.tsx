@@ -25,7 +25,7 @@ export const SenseiRoute = () => {
 
     // If they already have a sensei, they don't need to be here
     if (user.senseiId) {
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/hub" replace />;
     }
 
     return <Outlet />;
