@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --font-inter: "Inter", "system-ui", sans-serif;
+  --font-outfit: "Outfit", "system-ui", sans-serif;
+
+  --color-zinc-900: #18181b;
+  --color-zinc-800: #27272a;
+  
+  /* Anime Neons */
+  --color-neon-blue: #00f0ff;
+  --color-neon-pink: #ff0055;
+  --color-neon-purple: #b538ff;
+  --color-neon-green: #39ff14;
+  --color-neon-gold: #ffcf00;
+
+  /* Custom Backgrounds for App */
+  --color-bg-dark: #0a0a0c;
+  --color-surface: #111116;
+  --color-surface-hover: #1c1c24;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-dark text-white font-inter antialiased;
+    background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #0a0a0c 70%);
+    background-attachment: fixed;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-outfit uppercase tracking-wider font-bold;
+  }
+}
+
+@layer utilities {
+  /* Anime Glows */
+  .glow-blue {
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.5), inset 0 0 10px rgba(0, 240, 255, 0.2);
+  }
+  .glow-pink {
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.5), inset 0 0 10px rgba(255, 0, 85, 0.2);
+  }
+  .glow-purple {
+    box-shadow: 0 0 15px rgba(181, 56, 255, 0.5), inset 0 0 10px rgba(181, 56, 255, 0.2);
+  }
+  .glow-gold {
+    box-shadow: 0 0 15px rgba(255, 207, 0, 0.5), inset 0 0 10px rgba(255, 207, 0, 0.2);
+  }
+  .text-glow-blue {
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+  }
+  .text-glow-pink {
+    text-shadow: 0 0 10px rgba(255, 0, 85, 0.8);
+  }
+  
+  /* Particles / Aura animations */
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+  }
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-aura {
+    0% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(0, 240, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
+  }
+  .animate-pulse-aura {
+    animation: pulse-aura 2s infinite;
+  }
+  
+  /* Premium Glassmorphism */
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
+  }
+}
