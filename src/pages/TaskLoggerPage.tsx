@@ -31,6 +31,7 @@ export const TaskLoggerPage = ({ pillar }: Props) => {
     const [difficulty, setDifficulty] = useState(5);
     const [addingTask, setAddingTask] = useState(false);
     const [timerTask, setTimerTask] = useState<{ task: CustomTask, chapterId?: string } | null>(null);
+    const [activeCompletionTask, setActiveCompletionTask] = useState<{ task: CustomTask, chapterId?: string } | null>(null);
     const [chapters, setChapters] = useState<{ id: string, title: string }[]>([]);
 
     const allTasks = (user?.customTasks || []).filter(t => t.pillar === pillar);
@@ -205,10 +206,10 @@ export const TaskLoggerPage = ({ pillar }: Props) => {
                     )}
                     {activeTasks.map(task => (
                         <CustomTaskCard key={task.id} task={task}
-                            onComplete={completeCustomTask}
+                            onComplete={() => setActiveCompletionTask({ task })}
                             onStart={(t, cId) => setTimerTask({ task: t, chapterId: cId })}
                             onDelete={deleteCustomTask}
-                            onCompleteChapter={completeTaskChapter}
+                            onCompleteChapter={(_, chapterId) => setActiveCompletionTask({ task, chapterId })}
                         />
                     ))}
                 </div>
@@ -235,14 +236,26 @@ export const TaskLoggerPage = ({ pillar }: Props) => {
                     <TaskTimerModal
                         task={timerTask.task}
                         chapterId={timerTask.chapterId}
-                        onComplete={(taskId, chapterId) => {
+                        onComplete={(taskId, chapterId, notes) => {
                             if (chapterId) {
-                                completeTaskChapter(taskId, chapterId);
+                                completeTaskChapter(taskId, chapterId, undefined, notes);
                             } else {
-                                completeCustomTask(taskId);
+                                completeCustomTask(taskId, undefined, notes);
                             }
                         }}
                         onClose={() => setTimerTask(null)}
+                    />
+                )}
+                {activeCompletionTask && (
+                    <TaskTimerModal
+                        task={activeCompletionTask.task}
+                        chapterId={activeCompletionTask.chapterId}
+                        initialPhase="done"
+                        onComplete={(taskId, chapId, notes) => {
+                            if (chapId) completeTaskChapter(taskId, chapId, undefined, notes);
+                            else completeCustomTask(taskId, undefined, notes);
+                        }}
+                        onClose={() => setActiveCompletionTask(null)}
                     />
                 )}
             </AnimatePresence>
