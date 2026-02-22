@@ -1,7 +1,8 @@
 import { CustomTask } from '@/types';
 import { motion } from 'framer-motion';
 import { Play, Check, Trash2, Zap } from 'lucide-react';
-import clsx from 'clsx';
+import React from 'react';
+import { clsx } from 'clsx';
 
 const PILLAR_COLORS: Record<string, string> = {
     physical: 'text-neon-pink border-neon-pink/30',
@@ -14,11 +15,12 @@ const PILLAR_COLORS: Record<string, string> = {
 interface Props {
     task: CustomTask;
     onComplete: (id: string) => void;
-    onStart: (task: CustomTask) => void;
+    onStart: (task: CustomTask, chapterId?: string) => void;
     onDelete: (id: string) => void;
+    onCompleteChapter?: (taskId: string, chapterId: string) => void;
 }
 
-export const CustomTaskCard = ({ task, onComplete, onStart, onDelete }: Props) => {
+export const CustomTaskCard = ({ task, onComplete, onStart, onDelete, onCompleteChapter }: Props) => {
     const isCompleted = task.status === 'completed';
     const colors = PILLAR_COLORS[task.pillar] || PILLAR_COLORS.general;
 
@@ -27,7 +29,7 @@ export const CustomTaskCard = ({ task, onComplete, onStart, onDelete }: Props) =
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className={clsx(
                 "p-4 rounded-xl border transition-all",
-                isCompleted ? "bg-white/5 border-emerald-500/20 opacity-60" : `bg-surface ${colors.split(' ')[1]}`
+                isCompleted ? "bg-white/5 border-emerald-500/20 opacity-60" : `bg - surface ${colors.split(' ')[1]} `
             )}
         >
             <div className="flex items-center justify-between gap-3">
@@ -73,6 +75,68 @@ export const CustomTaskCard = ({ task, onComplete, onStart, onDelete }: Props) =
                     )}
                 </div>
             </div>
+
+            {/* Main Task Notes */}
+            {task.notes && (
+                <div className="mt-4 p-3 bg-neon-blue/5 border-l-2 border-neon-blue text-sm italic text-zinc-300 font-serif">
+                    "{task.notes}"
+                </div>
+            )}
+
+            {/* Chapters Section (Constellation UI) */}
+            {task.chapters && task.chapters.length > 0 && !isCompleted && (
+                <div className="mt-4 pt-4 border-t border-white/5 pl-2">
+                    <div className="relative border-l border-zinc-800 ml-3 pl-6 space-y-4">
+                        {task.chapters.map((chapter) => (
+                            <React.Fragment key={chapter.id}>
+                                <div className="relative flex items-center justify-between group">
+                                    {/* Timeline Node */}
+                                    <div className={clsx(
+                                        "absolute -left-[29px] w-3 h-3 rounded-full border-2 bg-bg-dark transition-colors duration-300",
+                                        chapter.isCompleted ? "border-neon-blue bg-neon-blue shadow-[0_0_10px_rgba(0,240,255,0.5)]" : "border-zinc-700"
+                                    )}></div>
+
+                                    <span className={clsx(
+                                        "text-sm font-medium transition-colors",
+                                        chapter.isCompleted ? "text-zinc-500 line-through" : "text-zinc-300"
+                                    )}>
+                                        {chapter.title}
+                                    </span>
+
+                                    {!chapter.isCompleted && (
+                                        <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => onStart(task, chapter.id)}
+                                                className="w-7 h-7 rounded-md bg-neon-blue/10 hover:bg-neon-blue/20 flex items-center justify-center text-neon-blue transition-colors"
+                                                title="Start chapter timer">
+                                                <Play size={12} fill="currentColor" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (onCompleteChapter) {
+                                                        onCompleteChapter(task.id, chapter.id);
+                                                    }
+                                                }}
+                                                className="w-7 h-7 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 flex items-center justify-center text-emerald-400 transition-colors"
+                                                title="Complete chapter">
+                                                <Check size={12} strokeWidth={3} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Chapter Notes */}
+                                {chapter.notes && (
+                                    <div className="ml-2 mt-2 p-2 bg-neon-blue/5 border-l border-neon-blue/50 text-xs italic text-zinc-400 font-serif">
+                                        "{chapter.notes}"
+                                    </div>
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+            )}
         </motion.div>
     );
 };

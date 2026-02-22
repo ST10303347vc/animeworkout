@@ -42,7 +42,7 @@ export const ProfilePage = () => {
     const dominantAura = getDominantAura(user.pillarXp);
     const mode = user.settings?.appMode || 'full';
 
-    const totalXp = Object.values(user.pillarXp).reduce((s, v) => s + v, 0);
+    const totalXp = user.globalXp || 0;
     const workoutsCount = user.battleLog?.length || 0;
     const tasksCount = (user.customTasks || []).filter(t => t.status === 'completed').length;
 

@@ -19,15 +19,26 @@ export interface PillarTask {
     completedAt?: string;
 }
 
+export interface TaskChapter {
+    id: string;          // e.g., 'chap-123'
+    title: string;       // Default: 'Chapter 1', 'Chapter 2', etc.
+    isCompleted: boolean;
+    timerDuration?: number; // Optional custom time per chapter
+    notes?: string;         // 'Eureka' moments or notes recorded upon completion
+}
+
 // ── Custom Task (new system) ───────────────────────────────────────
 export interface CustomTask {
     id: string;
     title: string;
-    pillar: Pillar | 'general';  // Can be assigned to a pillar or general
-    difficulty: number;          // 1–10
-    xpReward: number;            // Auto-calculated from difficulty
+    pillar: Pillar | 'general';
+    difficulty: number;
+    xpReward: number;
     status: 'active' | 'completed';
-    timerDuration?: number;      // Optional countdown seconds (for timed tasks)
+    timerDuration?: number;
+    chapters?: TaskChapter[]; // Optional subgoals
+    notes?: string;           // 'Eureka' moments or final notes
+    tags?: string[];          // For categorizing knowledge (e.g. 'Philosophy', 'Coding')
     createdAt: string;
     completedAt?: string;
 }
@@ -63,6 +74,7 @@ export interface UserProfile {
 
     pillarXp: PillarXP;
     globalLevel: number;
+    globalXp: number;
 
     // Legacy fields for migration
     level?: number;

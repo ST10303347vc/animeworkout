@@ -3,17 +3,51 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '@/stores/useStore';
 import { motion } from 'framer-motion';
 import { Sword } from 'lucide-react';
+import { pb } from '@/lib/pocketbase';
 
 export const AuthPage = () => {
+    const [isLogin, setIsLogin] = useState(true);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
-    const login = useStore((state) => state.login);
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    // We still use zustand's login for the frontend sync for now
+    const loginStore = useStore((state) => state.login);
     const navigate = useNavigate();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (username.trim()) {
-            login(username.trim());
-            navigate('/select-sensei');
+        setError('');
+        setIsLoading(true);
+
+        try {
+            if (isLogin) {
+                const authData = await pb.collection('users').authWithPassword(email, password);
+                loginStore(authData.record.name || authData.record.username || 'Hunter');
+                navigate('/hub');
+            } else {
+                // Registration
+                const data = {
+                    username: username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() + Math.floor(Math.random() * 1000),
+                    email,
+                    emailVisibility: true,
+                    password,
+                    passwordConfirm: password,
+                    name: username,
+                };
+
+                await pb.collection('users').create(data);
+                const authData = await pb.collection('users').authWithPassword(email, password);
+                loginStore(authData.record.name || username);
+                navigate('/select-sensei');
+            }
+        } catch (err: any) {
+            console.error("Auth error:", err);
+            setError(err?.response?.message || err.message || 'Authentication failed. Please check your credentials.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -31,7 +65,7 @@ export const AuthPage = () => {
                 transition={{ duration: 0.8 }}
                 className="z-10 bg-surface/80 backdrop-blur-xl p-10 rounded-3xl border border-white/10 shadow-2xl w-full max-w-md"
             >
-                <div className="text-center mb-10">
+                <div className="text-center mb-8">
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1, rotate: 360 }}
@@ -43,22 +77,60 @@ export const AuthPage = () => {
                     <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-pink text-glow-blue mb-2">
                         LIMIT BREAK
                     </h1>
-                    <p className="text-zinc-400 text-sm tracking-widest uppercase">Begin Your Training Arc</p>
+                    <p className="text-zinc-400 text-sm tracking-widest uppercase">
+                        {isLogin ? 'Resume Training' : 'Begin Your Training Arc'}
+                    </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                {error && (
+                    <div className="mb-6 p-3 bg-red-500/10 border border-red-500/50 text-red-400 rounded-lg text-sm text-center">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    {!isLogin && (
+                        <div>
+                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                                Challenger Name
+                            </label>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="Your display name..."
+                                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-neon-blue focus:ring-1 focus:ring-neon-blue transition-all"
+                                required={!isLogin}
+                            />
+                        </div>
+                    )}
+
                     <div>
-                        <label htmlFor="username" className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">
-                            Challenger Name
+                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                            Email Server
                         </label>
                         <input
-                            id="username"
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Enter your name..."
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="anime@example.com"
                             className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-neon-blue focus:ring-1 focus:ring-neon-blue transition-all"
                             required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                            Secret Password
+                        </label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-neon-blue focus:ring-1 focus:ring-neon-blue transition-all"
+                            required
+                            minLength={8}
                         />
                     </div>
 
@@ -66,11 +138,21 @@ export const AuthPage = () => {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         type="submit"
-                        className="w-full bg-gradient-to-r from-neon-blue to-neon-purple text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(181,56,255,0.6)] transition-all uppercase tracking-wider"
+                        disabled={isLoading}
+                        className="w-full bg-gradient-to-r from-neon-blue to-neon-purple text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(181,56,255,0.6)] transition-all uppercase tracking-wider disabled:opacity-50"
                     >
-                        Enter the Arena
+                        {isLoading ? 'Connecting...' : (isLogin ? 'Enter the Arena' : 'Forge Alliance')}
                     </motion.button>
                 </form>
+
+                <div className="mt-6 text-center">
+                    <button
+                        onClick={() => setIsLogin(!isLogin)}
+                        className="text-zinc-400 text-sm hover:text-white transition-colors"
+                    >
+                        {isLogin ? "Don't have an account? Sign Up" : "Already registered? Log In"}
+                    </button>
+                </div>
             </motion.div>
         </div>
     );

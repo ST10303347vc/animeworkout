@@ -13,15 +13,32 @@ export const calculatePillarLevel = (xp: number): number => {
     return Math.floor(Math.pow(Math.max(0, xp) / 100, 1 / 1.5)) || 1;
 };
 
-export const calculateGlobalLevel = (pillarXp: PillarXP): number => {
-    const levels = [
-        calculatePillarLevel(pillarXp.physical),
-        calculatePillarLevel(pillarXp.mental),
-        calculatePillarLevel(pillarXp.wealth),
-        calculatePillarLevel(pillarXp.vitality)
-    ];
-    const sum = levels.reduce((a, b) => a + b, 0);
-    return Math.floor(sum / levels.length) || 1;
+export const calculateGlobalXpLevel = (totalXp: number): number => {
+    // Shared exponential leveling formula used globally
+    return Math.floor(Math.pow(Math.max(0, totalXp) / 100, 1 / 1.5)) || 1;
+};
+
+export const getGlobalXpProgress = (totalXp: number) => {
+    const currentLevel = calculateGlobalXpLevel(totalXp);
+
+    // XP needed to reaching current level
+    const xpForCurrentLevel = Math.floor(100 * Math.pow(currentLevel, 1.5));
+    // XP needed to reaching next level
+    const xpForNextLevel = Math.floor(100 * Math.pow(currentLevel + 1, 1.5));
+
+    // How much XP we have accumulated *inside* this specific level
+    const xpInCurrentLevel = totalXp - xpForCurrentLevel;
+    // Total XP delta between current and next level
+    const xpNeededForNextLevel = xpForNextLevel - xpForCurrentLevel;
+
+    const progressPercentage = Math.min(100, Math.max(0, (xpInCurrentLevel / xpNeededForNextLevel) * 100));
+
+    return {
+        currentLevel,
+        xpInCurrentLevel,
+        xpNeededForNextLevel,
+        progressPercentage
+    };
 };
 
 export const getDominantAura = (pillarXp: PillarXP): AuraConfig => {
