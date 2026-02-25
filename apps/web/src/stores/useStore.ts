@@ -123,7 +123,7 @@ export const useStore = create<AppState>()(
                         const pbHabits = await pb.collection('daily_habits').getFullList(200, { sort: '-created' });
                         dailyHabits = pbHabits.map((h: any) => ({
                             id: h.id, title: h.title, pillar: h.pillar, difficulty: h.difficulty,
-                            xpReward: h.xpReward, lastCompletedDate: h.lastCompletedDate
+                            xpReward: h.xpReward, lastCompletedDate: h.lastCompletedDate, streak: h.streak || 0
                         }));
                     }
                 } catch (e) { console.error("Could not fetch data from PB:", e); }
@@ -395,14 +395,27 @@ export const useStore = create<AppState>()(
                 const today = getTodayStr();
                 if (habit.lastCompletedDate === today) return;
 
+                const yesterdayDate = new Date();
+                yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                const yesterday = yesterdayDate.toISOString().split('T')[0];
+
+                let newStreak = 1;
+                if (habit.lastCompletedDate === yesterday) {
+                    newStreak = (habit.streak || 0) + 1;
+                }
+
                 try {
-                    await pb.collection('daily_habits').update(pbId || habitId, { lastCompletedDate: today });
+                    await pb.collection('daily_habits').update(pbId || habitId, { lastCompletedDate: today, streak: newStreak });
                 } catch (e) { console.error(e); }
 
+                // Calculate XP reward: Exponential multiplier up to 2.5x base for a 5-day streak
+                const streakBonusMultiplier = 1 + ((newStreak - 1) * 0.35); // Day 1: 1x, Day 2: 1.35x, Day 5: 2.4x
+                const earnedXp = Math.floor(habit.xpReward * streakBonusMultiplier);
+
                 if (habit.pillar !== 'general') {
-                    get().addPillarXp(habit.pillar, habit.xpReward);
+                    get().addPillarXp(habit.pillar, earnedXp);
                 } else {
-                    const perPillar = Math.ceil(habit.xpReward / 4);
+                    const perPillar = Math.ceil(earnedXp / 4);
                     ALL_PILLARS.forEach(p => get().addPillarXp(p, perPillar));
                 }
 
@@ -412,7 +425,7 @@ export const useStore = create<AppState>()(
                         user: {
                             ...state.user,
                             dailyHabits: (state.user.dailyHabits || []).map(h =>
-                                h.id === habitId ? { ...h, lastCompletedDate: today } : h
+                                h.id === habitId ? { ...h, lastCompletedDate: today, streak: newStreak } : h
                             )
                         }
                     };

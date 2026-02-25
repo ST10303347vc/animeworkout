@@ -1,35 +1,34 @@
-import { Redirect } from 'expo-router';
-import { useStore } from '@/stores/useStore';
-import { View, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View } from "react-native";
 
-export default function Index() {
-    const isHydrated = useStore(s => s.isHydrated);
-    const user = useStore(s => s.user);
-
-    if (!isHydrated) {
-        return (
-            <View style={{ flex: 1, backgroundColor: '#0a0a14', justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#ff0055" />
-            </View>
-        );
-    }
-
-    if (!user) {
-        return <Redirect href="/(auth)/login" />;
-    }
-
-    if (!user.senseiId) {
-        return <Redirect href="/(auth)/select-sensei" />;
-    }
-
-    const enabledPillars = user.settings?.enabledPillars || [];
-
-    // Route to the first enabled pillar
-    if (enabledPillars.includes('physical')) return <Redirect href="/(tabs)/physical" />;
-    if (enabledPillars.includes('mental')) return <Redirect href="/(tabs)/mental" />;
-    if (enabledPillars.includes('wealth')) return <Redirect href="/(tabs)/wealth" />;
-    if (enabledPillars.includes('vitality')) return <Redirect href="/(tabs)/vitality" />;
-
-    // Fallback to tasks-only mode Hub / Physical
-    return <Redirect href="/(tabs)/physical" />;
+export default function Page() {
+  return (
+    <View style={styles.container}>
+      <View style={styles.main}>
+        <Text style={styles.title}>Hello World</Text>
+        <Text style={styles.subtitle}>This is the first page of your app.</Text>
+      </View>
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    padding: 24,
+  },
+  main: {
+    flex: 1,
+    justifyContent: "center",
+    maxWidth: 960,
+    marginHorizontal: "auto",
+  },
+  title: {
+    fontSize: 64,
+    fontWeight: "bold",
+  },
+  subtitle: {
+    fontSize: 36,
+    color: "#38434D",
+  },
+});

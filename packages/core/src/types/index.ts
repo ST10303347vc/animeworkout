@@ -49,6 +49,7 @@ export interface DailyHabit {
     difficulty: number;
     xpReward: number;
     lastCompletedDate?: string;
+    streak?: number;
 }
 
 export interface UserSettings {
@@ -72,6 +73,7 @@ export interface UserProfile {
     pillarXp: PillarXP;
     globalLevel: number;
     globalXp: number;
+    mainTaskProgress?: Record<Pillar, number>;
 
     // Legacy fields for migration
     level?: number;
@@ -92,6 +94,7 @@ export interface UserProfile {
     taskLog?: PillarTask[];
     customTasks?: CustomTask[];
     dailyHabits?: DailyHabit[];
+    challengeStartDate?: string;
 }
 
 export interface Exercise {
@@ -114,6 +117,7 @@ export interface Workout {
 export interface WorkoutExercise {
     id: string;
     exerciseId: string;
+    customName?: string;
     sets: number;
     reps: number;
     order: number;

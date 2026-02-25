@@ -110,10 +110,24 @@ export default function WorkoutSessionScreen() {
     const workout = allWorkouts.find(w => w.id === selectedWorkoutId);
     const exercises = useMemo(() => {
         if (!workout) return [];
-        return workout.exercises.map(we => ({
-            ...we,
-            details: MOCK_EXERCISES.find(e => e.id === we.exerciseId)
-        })).filter(e => e.details);
+        return workout.exercises.map(we => {
+            if (we.exerciseId === 'custom') {
+                return {
+                    ...we,
+                    details: {
+                        id: 'custom',
+                        name: we.customName || 'Custom Exercise',
+                        muscleGroup: 'CUSTOM',
+                        description: 'Custom exercise routine block.',
+                        difficultyRank: 'C' as const
+                    }
+                }
+            }
+            return {
+                ...we,
+                details: MOCK_EXERCISES.find(e => e.id === we.exerciseId)
+            }
+        }).filter(e => e.details);
     }, [workout]);
 
     const currentExercise = exercises[currentExIndex];

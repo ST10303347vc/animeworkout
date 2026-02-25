@@ -2,9 +2,15 @@ import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-nati
 import { MotiView } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/stores/useStore';
-import { getDominantAura, calculatePillarLevel, getUserTitle, MOCK_SENSEIS, ALL_PILLARS, ACHIEVEMENTS } from '@limit-break/core';
+import { getDominantAura, calculatePillarLevel, getUserTitle, MOCK_SENSEIS, ALL_PILLARS, ACHIEVEMENTS, getLevelProgress } from '@limit-break/core';
 import type { Pillar } from '@limit-break/core';
 import { useRouter } from 'expo-router';
+import Svg, { Circle } from 'react-native-svg';
+
+const RING_SIZE = 100;
+const STROKE_WIDTH = 4;
+const RADIUS = (RING_SIZE - STROKE_WIDTH) / 2;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 const PILLAR_COLORS: Record<Pillar, string> = {
     physical: '#ff0055',
@@ -26,6 +32,8 @@ export default function ProfileScreen() {
     const title = getUserTitle(user.globalLevel || 1, aura.pillar);
     const sensei = MOCK_SENSEIS.find(s => s.id === user.senseiId);
     const unlockedCount = (user.unlockedAchievements || []).length;
+    const progress = getLevelProgress(user.globalXp || 0);
+    const strokeDashoffset = CIRCUMFERENCE - (CIRCUMFERENCE * progress.progressPercent) / 100;
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -47,10 +55,30 @@ export default function ProfileScreen() {
                 transition={{ type: 'timing', duration: 500, delay: 150 }}
                 style={styles.profileCard}
             >
-                <View style={[styles.avatar, { borderColor: aura.glowHex }]}>
-                    <Text style={styles.avatarText}>{user.displayName?.[0]?.toUpperCase()}</Text>
+                <View style={[styles.ringContainer, { shadowColor: aura.glowHex }]}>
+                    <Svg width={RING_SIZE} height={RING_SIZE}>
+                        <Circle
+                            cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS}
+                            stroke="rgba(255,255,255,0.06)" strokeWidth={STROKE_WIDTH} fill="transparent"
+                        />
+                        <Circle
+                            cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS}
+                            stroke={aura.glowHex}
+                            strokeWidth={STROKE_WIDTH}
+                            fill="transparent"
+                            strokeDasharray={CIRCUMFERENCE}
+                            strokeDashoffset={strokeDashoffset}
+                            strokeLinecap="round"
+                            transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+                        />
+                    </Svg>
+                    <View style={[styles.avatarContainer, { borderColor: aura.glowHex }]}>
+                        <Text style={styles.avatarText}>{user.displayName?.[0]?.toUpperCase()}</Text>
+                    </View>
                 </View>
-                <Text style={styles.displayName}>{user.displayName?.toUpperCase()}</Text>
+                <Text style={styles.displayName}>
+                    {user.displayName?.toUpperCase() === 'CHALLENGER' ? 'XANDER VOLT' : user.displayName?.toUpperCase()}
+                </Text>
                 <Text style={[styles.titleText, { color: aura.glowHex }]}>{title.toUpperCase()}</Text>
                 <Text style={styles.senseiText}>
                     Sensei: {sensei?.name || 'None'} • {sensei?.title || ''}
@@ -146,11 +174,29 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0a0a14' },
     content: { paddingTop: 60, paddingHorizontal: 20 },
-    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, paddingLeft: 8 },
-    backButton: { position: 'absolute', left: -5, zIndex: 10, padding: 10 },
-    pageTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 4, textAlign: 'center', flex: 1, marginLeft: 20 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24, paddingLeft: 8, height: 40 },
+    backButton: { position: 'absolute', left: 0, zIndex: 10, padding: 10, height: '100%', justifyContent: 'center' },
+    pageTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 4, textAlign: 'center' },
     profileCard: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: '#2a2a3e' },
-    avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#0f0f1e', justifyContent: 'center', alignItems: 'center', borderWidth: 3, marginBottom: 12 },
+    ringContainer: {
+        width: RING_SIZE, height: RING_SIZE,
+        justifyContent: 'center', alignItems: 'center',
+        marginBottom: 12,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.9,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    avatarContainer: {
+        position: 'absolute',
+        width: RING_SIZE - STROKE_WIDTH * 4,
+        height: RING_SIZE - STROKE_WIDTH * 4,
+        borderRadius: (RING_SIZE - STROKE_WIDTH * 4) / 2,
+        backgroundColor: '#0f0f1e',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+    },
     avatarText: { fontSize: 32, fontWeight: '900', color: '#fff' },
     displayName: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 3 },
     titleText: { fontSize: 13, fontWeight: '700', letterSpacing: 2, marginTop: 4 },

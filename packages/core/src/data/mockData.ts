@@ -3,27 +3,27 @@ import { Exercise, Sensei, DailyQuest, Workout } from '../types';
 export const MOCK_SENSEIS: Sensei[] = [
     {
         id: 'sensei_1',
-        name: 'Goro',
-        title: 'The Iron Peak',
-        quote: '"Muscles are built with patience and destroyed with ego."',
-        imagePath: '/assets/senseis/placeholder-goro.png',
-        glowColor: 'bg-neon-gold text-glow-gold'
-    },
-    {
-        id: 'sensei_2',
-        name: 'Akira',
-        title: 'The Wind Walker',
-        quote: '"Speed without control is just a fast crash. Master your body."',
-        imagePath: '/assets/senseis/placeholder-akira.png',
+        name: 'Tasks(beta)',
+        title: 'Task Focused',
+        quote: '"Get things done."',
+        imagePath: '',
         glowColor: 'bg-neon-blue text-glow-blue'
     },
     {
-        id: 'sensei_3',
-        name: 'Mei',
-        title: 'The Shadow Strike',
-        quote: '"Gravity is just a suggestion. Let\'s fly."',
-        imagePath: '/assets/senseis/placeholder-mei.png',
+        id: 'sensei_2',
+        name: 'Xander Volt',
+        title: 'High Energy',
+        quote: '"Charge up your life."',
+        imagePath: '',
         glowColor: 'bg-neon-pink text-glow-pink'
+    },
+    {
+        id: 'sensei_3',
+        name: 'LOCKED IN',
+        title: 'Top Secret (Invite Only)',
+        quote: '"Classified."',
+        imagePath: '',
+        glowColor: 'bg-neon-gold text-glow-gold'
     }
 ];
 
@@ -117,32 +117,32 @@ export const MOCK_QUESTS: DailyQuest[] = [
         id: 'q_1',
         date: todayStr,
         pillar: 'physical',
-        questDescription: 'Complete a Vanguard Workout',
+        questDescription: '30 Pushups, 30 Squats, 30 Situps',
         isCompleted: false,
         xpReward: 50
     },
     {
         id: 'q_2',
         date: todayStr,
-        pillar: 'mental',
-        questDescription: 'Read 10 pages of a book',
+        pillar: 'vitality',
+        questDescription: 'Drink 1.5L of Water',
         isCompleted: false,
         xpReward: 30
     },
     {
         id: 'q_3',
         date: todayStr,
-        pillar: 'wealth',
-        questDescription: 'Complete 1 Deep Work session',
+        pillar: 'mental',
+        questDescription: 'Learn 1 new concept about a topic you\'re passionate about',
         isCompleted: false,
-        xpReward: 40
+        xpReward: 50
     },
     {
         id: 'q_4',
         date: todayStr,
-        pillar: 'vitality',
-        questDescription: 'Drink 2L of Water',
+        pillar: 'wealth',
+        questDescription: '1 Hour of Focused Work',
         isCompleted: false,
-        xpReward: 20
+        xpReward: 80 // Highest XP reward as requested
     }
 ];

@@ -187,42 +187,7 @@ export default function HubScreen({ onProfilePress }: HubScreenProps) {
           </View>
         )}
 
-        {/* ── Daily Quests ──────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎯 DAILY QUESTS</Text>
-          {quests.map((quest, i) => {
-            if (!enabledPillars.includes(quest.pillar)) return null;
-            const config = PILLAR_CONFIG[quest.pillar];
-            return (
-              <MotiView
-                key={quest.id}
-                from={{ opacity: 0, translateY: 10 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: 'timing', duration: 300, delay: 700 + i * 80 }}
-              >
-                <Pressable
-                  onPress={() => !quest.isCompleted && completeQuest(quest.id)}
-                  disabled={quest.isCompleted}
-                >
-                  <View style={[styles.questCard, quest.isCompleted && styles.questCompleted]}>
-                    <View style={[styles.questPillarDot, { backgroundColor: config.color }]} />
-                    <View style={styles.questInfo}>
-                      <Text style={[styles.questText, quest.isCompleted && styles.questTextCompleted]}>
-                        {quest.questDescription}
-                      </Text>
-                      <Text style={[styles.questXp, { color: config.color }]}>
-                        +{quest.xpReward} XP
-                      </Text>
-                    </View>
-                    {quest.isCompleted && (
-                      <Ionicons name="checkmark-circle" size={24} color="#10b981" />
-                    )}
-                  </View>
-                </Pressable>
-              </MotiView>
-            );
-          })}
-        </View>
+        {/* Removed Daily Quests from this view */}
 
         {/* Bottom spacer for tab bar */}
         <View style={{ height: 100 }} />

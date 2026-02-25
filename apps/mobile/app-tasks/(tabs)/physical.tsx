@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-nati
 import { MotiView } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { FloatingActionButton } from '@/components/FloatingActionButton';
-import { FuturisticBackground } from '@/components/FuturisticBackground';
 import { BlurView } from 'expo-blur';
 import { useStore } from '@/stores/useStore';
 import { useRouter } from 'expo-router';
@@ -40,7 +39,6 @@ export default function PhysicalScreen() {
 
     return (
         <View style={styles.container}>
-            <FuturisticBackground />
             <ScrollView contentContainerStyle={styles.content}>
                 <MotiView
                     from={{ opacity: 0, translateY: -10 }}
@@ -156,28 +154,44 @@ export default function PhysicalScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0a0a14' },
+    container: { flex: 1, backgroundColor: '#05050A' },
     content: { paddingTop: 60, paddingHorizontal: 20 },
     headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    pageTitle: { fontSize: 24, fontWeight: '900', letterSpacing: 4 },
-    subtitle: { color: '#aaa', fontSize: 12, marginTop: 4, marginBottom: 24 },
-    statsCardContainer: { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255, 0, 85, 0.3)' },
-    glassCard: { padding: 20, backgroundColor: 'rgba(26, 26, 46, 0.4)' },
-    statsTitle: { color: '#bbb', fontSize: 11, fontWeight: '700', letterSpacing: 2, marginBottom: 12 },
-    noSession: { color: '#888', fontStyle: 'italic', marginTop: 10 },
+    pageTitle: {
+        fontSize: 26,
+        fontWeight: '900',
+        letterSpacing: 4,
+        textShadowColor: 'rgba(255, 0, 85, 0.5)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10
+    },
+    subtitle: { color: '#888', fontSize: 13, fontWeight: '500', letterSpacing: 1, marginTop: 4, marginBottom: 28 },
+    statsCardContainer: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255, 0, 85, 0.4)' },
+    glassCard: { padding: 24, backgroundColor: 'rgba(25, 10, 15, 0.7)' },
+    statsTitle: { color: '#ff0055', fontSize: 12, fontWeight: '800', letterSpacing: 3, marginBottom: 14, opacity: 0.9 },
+    noSession: { color: '#666', fontStyle: 'italic', marginTop: 10, letterSpacing: 1 },
     timerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
-    timerText: { color: '#fff', fontSize: 32, fontWeight: '900', fontVariant: ['tabular-nums'], flex: 1 },
-    actionBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-    section: { marginTop: 24 },
-    sectionTitle: { color: '#bbb', fontSize: 11, fontWeight: '700', letterSpacing: 2, marginBottom: 10 },
+    timerText: {
+        color: '#fff',
+        fontSize: 38,
+        fontWeight: '900',
+        fontVariant: ['tabular-nums'],
+        flex: 1,
+        textShadowColor: 'rgba(255, 0, 85, 0.5)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 8
+    },
+    actionBtn: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 4, elevation: 5 },
+    section: { marginTop: 32 },
+    sectionTitle: { color: '#ff0055', fontSize: 12, fontWeight: '800', letterSpacing: 3, marginBottom: 14, opacity: 0.8 },
     taskCardContainer: {
-        borderRadius: 10, overflow: 'hidden', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(42, 42, 62, 0.5)',
+        borderRadius: 12, overflow: 'hidden', marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255, 0, 85, 0.25)',
     },
     glassCardTask: {
-        flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: 'rgba(26, 26, 46, 0.4)',
+        flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: 'rgba(25, 10, 15, 0.6)',
     },
-    taskCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, marginRight: 12 },
+    taskCheck: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, marginRight: 14 },
     taskInfo: { flex: 1 },
-    taskTitle: { color: '#fff', fontSize: 15, fontWeight: '600' },
-    taskXp: { fontSize: 11, fontWeight: '700', marginTop: 2 },
+    taskTitle: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
+    taskXp: { fontSize: 12, fontWeight: '800', marginTop: 4, opacity: 0.9 },
 });

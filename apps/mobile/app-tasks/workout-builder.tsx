@@ -9,6 +9,7 @@ import { MOCK_EXERCISES } from '@limit-break/core';
 interface BuilderExercise {
     id: string; // unique instance id
     exerciseId: string;
+    customName?: string;
     sets: number;
     reps: number;
 }
@@ -22,17 +23,18 @@ export default function WorkoutBuilderScreen() {
     const [searchTerm, setSearchTerm] = useState('');
     const [showLibrary, setShowLibrary] = useState(false);
 
-    const handleAddExercise = (exerciseId: string) => {
+    const handleAddExercise = (exerciseId: string, customName?: string) => {
         setSelectedExercises([
             ...selectedExercises,
             {
                 id: `ex_${Date.now()}_${Math.random()}`,
                 exerciseId,
+                customName,
                 sets: 3,
                 reps: 10
             }
         ]);
-        // After picking an exercise, close library and show routine
+        setSearchTerm('');
         setShowLibrary(false);
     };
 
@@ -59,6 +61,7 @@ export default function WorkoutBuilderScreen() {
         const finalExercises = selectedExercises.map((ex, index) => ({
             id: ex.id,
             exerciseId: ex.exerciseId,
+            customName: ex.customName,
             sets: ex.sets,
             reps: ex.reps,
             order: index
@@ -76,17 +79,21 @@ export default function WorkoutBuilderScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}>
+                    <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={15}>
                         <Ionicons name="chevron-down" size={28} color="#888" />
                     </Pressable>
-                    <View>
-                        <TextInput
-                            style={styles.routineNameInput}
-                            value={routineName}
-                            onChangeText={setRoutineName}
-                            placeholder="Routine Name"
-                            placeholderTextColor="#555"
-                        />
+                    <View style={styles.headerTitleContainer}>
+                        <View style={styles.titleInputRow}>
+                            <TextInput
+                                style={styles.routineNameInput}
+                                value={routineName}
+                                onChangeText={setRoutineName}
+                                placeholder="Routine Name"
+                                placeholderTextColor="#555"
+                                maxLength={25}
+                            />
+                            <Ionicons name="pencil" size={14} color="#555" />
+                        </View>
                         <Text style={styles.subtitle}>Custom Routine Builder</Text>
                     </View>
                 </View>
@@ -131,9 +138,21 @@ export default function WorkoutBuilderScreen() {
                                     <Text style={styles.libName}>{exercise.name}</Text>
                                     <Text style={styles.libDetail}>{exercise.muscleGroup} • Rank {exercise.difficultyRank}</Text>
                                 </View>
-                                <Ionicons name="add-circle" size={24} color="#00f0ff" />
+                                <Ionicons name="add-circle" size={24} color="#ff0055" />
                             </Pressable>
                         ))}
+                        {searchTerm.trim().length > 0 && (
+                            <Pressable
+                                style={[styles.libCard, { borderColor: '#ff0055', borderStyle: 'dashed' }]}
+                                onPress={() => handleAddExercise('custom', searchTerm.trim())}
+                            >
+                                <View style={styles.libInfo}>
+                                    <Text style={styles.libName}>"{searchTerm.trim()}"</Text>
+                                    <Text style={styles.libDetail}>CUSTOM EXERCISE</Text>
+                                </View>
+                                <Ionicons name="add-circle" size={24} color="#ff0055" />
+                            </Pressable>
+                        )}
                     </ScrollView>
                 </MotiView>
             ) : (
@@ -151,7 +170,10 @@ export default function WorkoutBuilderScreen() {
                         <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
                             <AnimatePresence>
                                 {selectedExercises.map((item, index) => {
-                                    const exerciseDetails = MOCK_EXERCISES.find(e => e.id === item.exerciseId)!;
+                                    const exerciseDetails = item.exerciseId === 'custom'
+                                        ? { name: item.customName || 'Custom Exercise', muscleGroup: 'CUSTOM' }
+                                        : MOCK_EXERCISES.find(e => e.id === item.exerciseId) || { name: 'Unknown', muscleGroup: 'Unknown' };
+
                                     return (
                                         <MotiView
                                             key={item.id}
@@ -214,12 +236,25 @@ export default function WorkoutBuilderScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0a0a14', paddingTop: Platform.OS === 'ios' ? 60 : 40 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 20 },
-    headerLeft: { flexDirection: 'row', alignItems: 'center' },
-    backBtn: { marginRight: 12 },
-    routineNameInput: { fontSize: 24, fontWeight: '900', color: '#fff', textTransform: 'uppercase', letterSpacing: 2, padding: 0 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 20 },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 10 },
+    headerTitleContainer: { flex: 1 },
+    titleInputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1a1a2e',
+        borderWidth: 1,
+        borderColor: '#ff0055',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        alignSelf: 'stretch',
+        marginBottom: 6
+    },
+    backBtn: { marginRight: 12, padding: 4 },
+    routineNameInput: { fontSize: 16, fontWeight: '800', color: '#fff', textTransform: 'uppercase', letterSpacing: 1, padding: 0, marginRight: 6, flex: 1 },
     subtitle: { color: '#888', fontSize: 10, fontWeight: '800', letterSpacing: 2, textTransform: 'uppercase', marginTop: 4 },
-    saveBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#00f0ff', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, gap: 6 },
+    saveBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ff0055', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, gap: 6 },
     saveBtnDisabled: { backgroundColor: '#1a1a2e' },
     saveText: { color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
     toggleRow: { flexDirection: 'row', marginHorizontal: 20, backgroundColor: '#1a1a2e', borderRadius: 10, padding: 4, marginBottom: 20 },
@@ -237,11 +272,11 @@ const styles = StyleSheet.create({
     // Routine
     emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     emptyText: { color: '#555', fontSize: 12, fontWeight: '800', letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 24 },
-    addFirstBtn: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#00f0ff', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
-    addFirstText: { color: '#00f0ff', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
+    addFirstBtn: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#ff0055', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
+    addFirstText: { color: '#ff0055', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
     routineCard: { backgroundColor: '#1a1a2e', borderRadius: 12, borderWidth: 1, borderColor: '#2a2a3e', padding: 16, marginBottom: 16 },
     routineHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-    routineNumberBadge: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#00f0ff', justifyContent: 'center', alignItems: 'center' },
+    routineNumberBadge: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#ff0055', justifyContent: 'center', alignItems: 'center' },
     routineNumber: { color: '#000', fontSize: 12, fontWeight: '900' },
     routineName: { color: '#fff', fontSize: 16, fontWeight: '800' },
     routineDetail: { color: '#888', fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 },

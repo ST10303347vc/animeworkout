@@ -8,6 +8,7 @@ interface HabitRow {
     difficulty: number;
     xp_reward: number;
     last_completed_date: string | null;
+    streak: number;
     synced: number;
 }
 
@@ -29,23 +30,32 @@ export class HabitRepo {
         difficulty: number;
         xpReward: number;
     }): Promise<DailyHabit> {
-        const id = `habit-${Date.now()}`;
+        const id = `habit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         await this.db.runAsync(
-            `INSERT INTO daily_habits (id, title, pillar, difficulty, xp_reward)
-             VALUES (?, ?, ?, ?, ?)`,
+            `INSERT INTO daily_habits (id, title, pillar, difficulty, xp_reward, streak)
+             VALUES (?, ?, ?, ?, ?, 0)`,
             [id, habit.title, habit.pillar, habit.difficulty, habit.xpReward]
         );
-        await this.queueSync(id, 'create', habit);
-        return { id, ...habit, pillar: habit.pillar as any };
+        await this.queueSync(id, 'create', { ...habit, streak: 0 });
+        return { id, ...habit, pillar: habit.pillar as any, streak: 0 };
     }
 
-    /** Mark a habit as completed today */
-    async complete(id: string, date: string): Promise<void> {
+    /** Mark a habit as completed today, incrementing the streak */
+    async complete(id: string, date: string, newStreak: number): Promise<void> {
         await this.db.runAsync(
-            'UPDATE daily_habits SET last_completed_date = ? WHERE id = ?',
+            'UPDATE daily_habits SET last_completed_date = ?, streak = ? WHERE id = ?',
+            [date, newStreak, id]
+        );
+        await this.queueSync(id, 'update', { lastCompletedDate: date, streak: newStreak });
+    }
+
+    /** Mark a habit as failed today, resetting the streak to 0 */
+    async fail(id: string, date: string): Promise<void> {
+        await this.db.runAsync(
+            'UPDATE daily_habits SET last_completed_date = ?, streak = 0 WHERE id = ?',
             [date, id]
         );
-        await this.queueSync(id, 'update', { lastCompletedDate: date });
+        await this.queueSync(id, 'update', { lastCompletedDate: date, streak: 0 });
     }
 
     /** Delete a habit */
@@ -69,6 +79,7 @@ export class HabitRepo {
             difficulty: row.difficulty,
             xpReward: row.xp_reward,
             lastCompletedDate: row.last_completed_date || undefined,
+            streak: row.streak || 0,
         };
     }
 }

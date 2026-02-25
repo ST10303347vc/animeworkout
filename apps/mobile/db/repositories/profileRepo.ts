@@ -13,6 +13,8 @@ interface ProfileRow {
     has_seen_tutorial: number;
     app_mode: string;
     enabled_pillars: string;
+    challenge_start_date: string | null;
+    main_task_progress: string;
     created_at: string;
     updated_at: string;
 }
@@ -47,6 +49,8 @@ export class ProfileRepo {
         hasSeenTutorial: boolean;
         appMode: AppMode;
         enabledPillars: Pillar[];
+        challengeStartDate: string;
+        mainTaskProgress: Record<Pillar, number>;
     }>): Promise<void> {
         const sets: string[] = [];
         const values: any[] = [];
@@ -60,6 +64,8 @@ export class ProfileRepo {
         if (fields.hasSeenTutorial !== undefined) { sets.push('has_seen_tutorial = ?'); values.push(fields.hasSeenTutorial ? 1 : 0); }
         if (fields.appMode !== undefined) { sets.push('app_mode = ?'); values.push(fields.appMode); }
         if (fields.enabledPillars !== undefined) { sets.push('enabled_pillars = ?'); values.push(JSON.stringify(fields.enabledPillars)); }
+        if (fields.challengeStartDate !== undefined) { sets.push('challenge_start_date = ?'); values.push(fields.challengeStartDate); }
+        if (fields.mainTaskProgress !== undefined) { sets.push('main_task_progress = ?'); values.push(JSON.stringify(fields.mainTaskProgress)); }
 
         if (sets.length === 0) return;
         sets.push("updated_at = datetime('now')");
@@ -76,6 +82,9 @@ export class ProfileRepo {
     }
 
     private rowToProfile(row: ProfileRow): UserProfile {
+        let parsedProgress = { physical: 0, mental: 0, wealth: 0, vitality: 0 };
+        try { if (row.main_task_progress) parsedProgress = JSON.parse(row.main_task_progress); } catch (e) { }
+
         return {
             id: row.id,
             displayName: row.display_name,
@@ -90,6 +99,8 @@ export class ProfileRepo {
                 appMode: row.app_mode as AppMode,
                 enabledPillars: JSON.parse(row.enabled_pillars) as Pillar[],
             },
+            challengeStartDate: row.challenge_start_date || undefined,
+            mainTaskProgress: parsedProgress,
         };
     }
 }

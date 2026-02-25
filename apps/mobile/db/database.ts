@@ -45,7 +45,38 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
     }
 
     // Future migrations go here:
-    // if (currentVersion < 2) { await db.execAsync(V2_MIGRATION); }
+    if (currentVersion < 2) {
+        console.log('[DB] Applying migration V2...');
+        try {
+            await db.execAsync(`ALTER TABLE user_profile ADD COLUMN challenge_start_date TEXT;`);
+        } catch (e) {
+            console.log('[DB] Column challenge_start_date might already exist.', e);
+        }
+        await db.execAsync(`INSERT OR REPLACE INTO schema_version (version) VALUES (2);`);
+        console.log('[DB] Migration V2 applied successfully.');
+    }
+
+    if (currentVersion < 3) {
+        console.log('[DB] Applying migration V3...');
+        try {
+            await db.execAsync(`ALTER TABLE daily_habits ADD COLUMN streak INTEGER DEFAULT 0;`);
+        } catch (e) {
+            console.log('[DB] Column streak might already exist in daily_habits.', e);
+        }
+        await db.execAsync(`INSERT OR REPLACE INTO schema_version (version) VALUES (3);`);
+        console.log('[DB] Migration V3 applied successfully.');
+    }
+
+    if (currentVersion < 4) {
+        console.log('[DB] Applying migration V4...');
+        try {
+            await db.execAsync(`ALTER TABLE user_profile ADD COLUMN main_task_progress TEXT DEFAULT '{}';`);
+        } catch (e) {
+            console.log('[DB] Column main_task_progress might already exist in user_profile.', e);
+        }
+        await db.execAsync(`INSERT OR REPLACE INTO schema_version (version) VALUES (4);`);
+        console.log('[DB] Migration V4 applied successfully.');
+    }
 }
 
 /**

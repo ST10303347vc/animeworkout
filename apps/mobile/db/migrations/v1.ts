@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS user_profile (
     has_seen_tutorial INTEGER DEFAULT 0,
     app_mode TEXT DEFAULT 'full',
     enabled_pillars TEXT DEFAULT '["physical","mental","wealth","vitality"]',
+    challenge_start_date TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );

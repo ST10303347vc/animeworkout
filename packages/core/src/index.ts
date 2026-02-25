@@ -44,5 +44,20 @@ export {
     MOCK_QUESTS,
 } from './data/mockData';
 
+export { MAIN_TASKS } from './data/mainTasks';
+
 export { SKILL_TREES } from './data/skillTrees';
 export type { SkillNode, SkillTreeDef } from './data/skillTrees';
+
+// ── Challenge Mode ────────────────────────────────────────────────
+export {
+    AVATAR_LEVELS,
+    CHALLENGE_DURATION_DAYS,
+    TOTAL_AVATAR_LEVELS,
+    getAvatarLevel,
+    getLevelProgress,
+    getChallengeDay,
+    isChallengeComplete,
+    getLevelMessage,
+} from './lib/challengeXp';
+export type { AvatarLevel } from './lib/challengeXp';

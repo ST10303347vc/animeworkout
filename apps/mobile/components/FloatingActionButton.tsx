@@ -48,22 +48,52 @@ export function FloatingActionButton({ actions, mainColor = '#ff0055' }: FABProp
             <View style={styles.container} pointerEvents="box-none">
                 {actions.map((action, index) => {
                     const actionStyle = useAnimatedStyle(() => {
+                        // Top item goes to the middle of the screen (up and left)
+                        // Next item goes diagonal (down to the right) from the top item
+                        let targetX = 0;
+                        let targetY = 0;
+
+                        // index 1 is "Build Custom Workout" (top item)
+                        // index 0 is "Start Workout" (next item)
+                        if (index === 1) {
+                            targetX = -80;
+                            targetY = -140;
+                        } else if (index === 0) {
+                            targetX = -15;
+                            targetY = -70;
+                        } else {
+                            targetY = -80 * (index + 1);
+                            targetX = -30 * index;
+                        }
+
+                        const translateX = interpolate(
+                            openValue.value,
+                            [0, 1],
+                            [0, targetX]
+                        );
                         const translateY = interpolate(
                             openValue.value,
                             [0, 1],
-                            [40, -60 * (index + 1)]
+                            [40, targetY]
                         );
-                        const scale = interpolate(openValue.value, [0, 1], [0, 1]);
+                        const scale = interpolate(openValue.value, [0, 1], [0.5, 1]);
                         const opacity = interpolate(openValue.value, [0, 1], [0, 1]);
+
                         return {
-                            transform: [{ translateY }, { scale }],
+                            transform: [{ translateX }, { translateY }, { scale }],
                             opacity,
                         };
                     });
 
                     return (
                         <Animated.View key={action.label} style={[styles.actionWrapper, actionStyle]} pointerEvents={isOpen ? 'auto' : 'none'}>
-                            <Text style={styles.actionLabel}>{action.label}</Text>
+                            <Text style={[
+                                styles.actionLabel,
+                                {
+                                    backgroundColor: `${action.color || mainColor}25`, // 25 hex is ~15% opacity
+                                    borderColor: action.color || mainColor
+                                }
+                            ]}>{action.label}</Text>
                             <Pressable
                                 style={[styles.actionButton, { backgroundColor: action.color || mainColor }]}
                                 onPress={() => {
@@ -121,12 +151,12 @@ const styles = StyleSheet.create({
     actionLabel: {
         color: '#fff',
         fontSize: 14,
-        fontWeight: '700',
-        marginRight: 12,
-        backgroundColor: '#1a1a2e',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 6,
+        fontWeight: '800',
+        marginRight: 16,
+        borderWidth: 1,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
         overflow: 'hidden',
     },
     actionButton: {

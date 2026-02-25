@@ -3,7 +3,7 @@ import type {
     UserProfile, Pillar, PillarXP, AppMode, CustomTask,
     DailyHabit, DailyQuest, PillarTask,
 } from '@limit-break/core';
-import { calcXpFromDifficulty, calculateGlobalXpLevel, ALL_PILLARS, MOCK_QUESTS, ACHIEVEMENTS } from '@limit-break/core';
+import { calcXpFromDifficulty, calculateGlobalXpLevel, ALL_PILLARS, MOCK_QUESTS, ACHIEVEMENTS, getLevelProgress } from '@limit-break/core';
 import { getDatabase, ProfileRepo, XpRepo, TaskRepo, HabitRepo, BattleLogRepo, SyncRepo, WorkoutRepo } from '../db';
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -19,6 +19,9 @@ interface AppState {
     quests: DailyQuest[];
     newlyUnlocked: string[];
     soundEnabled: boolean;
+    showLevelUpModal: boolean;
+    lastSeenLevel: number | null;
+    levelUpQueue: number[];
 
     // ── Actions ────────────────────────────────────────────────────
     hydrate: () => Promise<void>;
@@ -40,7 +43,10 @@ interface AppState {
 
     addDailyHabit: (title: string, pillar: Pillar | 'general', difficulty: number) => Promise<void>;
     completeDailyHabit: (habitId: string) => Promise<void>;
+    failDailyHabit: (habitId: string) => Promise<void>;
     deleteDailyHabit: (habitId: string) => Promise<void>;
+
+    completeMainTask: (pillar: Pillar) => Promise<void>;
 
     addWorkout: (name: string, isCustom: boolean, exercises: any[]) => Promise<void>;
     logWorkout: (workoutName: string, xpEarned: number) => Promise<void>;
@@ -51,6 +57,9 @@ interface AppState {
     clearNewlyUnlocked: () => void;
     checkAchievements: () => void;
     toggleSound: () => void;
+    setChallengeStartDate: (date: string) => Promise<void>;
+    closeLevelUpModal: () => void;
+    setShowLevelUpModal: (show: boolean) => void;
 }
 
 // ── Store ──────────────────────────────────────────────────────────
@@ -60,6 +69,9 @@ export const useStore = create<AppState>()((set, get) => ({
     quests: MOCK_QUESTS,
     newlyUnlocked: [],
     soundEnabled: true,
+    showLevelUpModal: false,
+    lastSeenLevel: null,
+    levelUpQueue: [],
 
     // ── Hydrate from SQLite on app start ───────────────────────────
     hydrate: async () => {
@@ -80,6 +92,14 @@ export const useStore = create<AppState>()((set, get) => ({
                 const workouts = await workoutRepo.getAll();
                 const battleLog = await battleLogRepo.getAll();
 
+                // Refresh daily quests if the date has rolled over
+                const today = getTodayStr();
+                const currentQuests = get().quests;
+                const requiresRefresh = currentQuests.some(q => q.date !== today);
+                const updatedQuests = requiresRefresh
+                    ? MOCK_QUESTS.map(q => ({ ...q, date: today, isCompleted: false }))
+                    : currentQuests;
+
                 set({
                     user: {
                         ...profile,
@@ -89,6 +109,7 @@ export const useStore = create<AppState>()((set, get) => ({
                         customWorkouts: workouts,
                         battleLog: battleLog
                     },
+                    quests: updatedQuests,
                     isHydrated: true,
                 });
             } else {
@@ -195,12 +216,30 @@ export const useStore = create<AppState>()((set, get) => ({
         const xpRepo = new XpRepo(db);
         const profileRepo = new ProfileRepo(db);
 
+        // Capture previous total XP to check stage progress later
+        const previousTotalXp = state.user.globalXp || 0;
+        const currentLevelObj = getLevelProgress(previousTotalXp);
+
         await xpRepo.addXp(pillar, amount);
         const updatedPillarXp = await xpRepo.getAll();
-        const updatedGlobalXp = (state.user.globalXp || 0) + amount;
+        const updatedGlobalXp = previousTotalXp + amount;
         const newGlobalLevel = calculateGlobalXpLevel(updatedGlobalXp);
 
         await profileRepo.update({ globalXp: updatedGlobalXp, globalLevel: Math.max(state.user.globalLevel || 1, newGlobalLevel) });
+
+        // Calculate new level and check if we leveled up
+        const newLevelObj = getLevelProgress(updatedGlobalXp);
+        let leveledUp = false;
+        let nextLastSeenLevel = state.lastSeenLevel || currentLevelObj.currentLevel;
+        let nextQueue = [...(state.levelUpQueue || [])];
+
+        if (newLevelObj.currentLevel > nextLastSeenLevel) {
+            leveledUp = true;
+            for (let l = nextLastSeenLevel + 1; l <= newLevelObj.currentLevel; l++) {
+                if (!nextQueue.includes(l)) nextQueue.push(l);
+            }
+            nextLastSeenLevel = newLevelObj.currentLevel;
+        }
 
         set({
             user: {
@@ -209,12 +248,45 @@ export const useStore = create<AppState>()((set, get) => ({
                 globalXp: updatedGlobalXp,
                 globalLevel: Math.max(state.user!.globalLevel || 1, newGlobalLevel),
             },
+            ...(leveledUp ? { showLevelUpModal: true, levelUpQueue: nextQueue, lastSeenLevel: nextLastSeenLevel } : {}),
+            ...(!state.lastSeenLevel ? { lastSeenLevel: newLevelObj.currentLevel } : {})
         });
         setTimeout(() => get().checkAchievements(), 0);
     },
 
     addXp: async (amount: number) => {
-        await get().addPillarXp('physical', amount);
+        const state = get();
+        if (!state.user) return;
+        const db = await getDatabase();
+        const profileRepo = new ProfileRepo(db);
+
+        const previousTotalXp = state.user.globalXp || 0;
+        const currentLevelObj = getLevelProgress(previousTotalXp);
+
+        const updatedGlobalXp = previousTotalXp + amount;
+        const newGlobalLevel = calculateGlobalXpLevel(updatedGlobalXp);
+
+        await profileRepo.update({ globalXp: updatedGlobalXp, globalLevel: Math.max(state.user.globalLevel || 1, newGlobalLevel) });
+
+        const newLevelObj = getLevelProgress(updatedGlobalXp);
+        let leveledUp = false;
+        let nextLastSeenLevel = state.lastSeenLevel || currentLevelObj.currentLevel;
+        let nextQueue = [...(state.levelUpQueue || [])];
+
+        if (newLevelObj.currentLevel > nextLastSeenLevel) {
+            leveledUp = true;
+            for (let l = nextLastSeenLevel + 1; l <= newLevelObj.currentLevel; l++) {
+                if (!nextQueue.includes(l)) nextQueue.push(l);
+            }
+            nextLastSeenLevel = newLevelObj.currentLevel;
+        }
+
+        set({
+            user: { ...state.user, globalXp: updatedGlobalXp, globalLevel: Math.max(state.user!.globalLevel || 1, newGlobalLevel) },
+            ...(leveledUp ? { showLevelUpModal: true, levelUpQueue: nextQueue, lastSeenLevel: nextLastSeenLevel } : {}),
+            ...(!state.lastSeenLevel ? { lastSeenLevel: newLevelObj.currentLevel } : {})
+        });
+        setTimeout(() => get().checkAchievements(), 0);
     },
 
     // ── Custom Tasks ──────────────────────────────────────────────
@@ -353,14 +425,27 @@ export const useStore = create<AppState>()((set, get) => ({
         const today = getTodayStr();
         if (habit.lastCompletedDate === today) return;
 
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterday = yesterdayDate.toISOString().split('T')[0];
+
+        let newStreak = 1;
+        if (habit.lastCompletedDate === yesterday) {
+            newStreak = (habit.streak || 0) + 1;
+        }
+
         const db = await getDatabase();
         const habitRepo = new HabitRepo(db);
-        await habitRepo.complete(habitId, today);
+        await habitRepo.complete(habitId, today, newStreak);
+
+        // Calculate XP reward: Exponential multiplier up to 2.5x base for a 5-day streak
+        const streakBonusMultiplier = 1 + ((newStreak - 1) * 0.35); // Day 1: 1x, Day 2: 1.35x, Day 5: 2.4x
+        const earnedXp = Math.floor(habit.xpReward * streakBonusMultiplier);
 
         if (habit.pillar !== 'general') {
-            await get().addPillarXp(habit.pillar, habit.xpReward);
+            await get().addPillarXp(habit.pillar, earnedXp);
         } else {
-            const perPillar = Math.ceil(habit.xpReward / 4);
+            const perPillar = Math.ceil(earnedXp / 4);
             for (const p of ALL_PILLARS) await get().addPillarXp(p, perPillar);
         }
 
@@ -368,7 +453,29 @@ export const useStore = create<AppState>()((set, get) => ({
             user: s.user ? {
                 ...s.user,
                 dailyHabits: (s.user.dailyHabits || []).map(h =>
-                    h.id === habitId ? { ...h, lastCompletedDate: today } : h
+                    h.id === habitId ? { ...h, lastCompletedDate: today, streak: newStreak } : h
+                ),
+            } : null,
+        }));
+    },
+
+    failDailyHabit: async (habitId) => {
+        const state = get();
+        if (!state.user) return;
+        const habit = (state.user.dailyHabits || []).find(h => h.id === habitId);
+        if (!habit) return;
+        const today = getTodayStr();
+        if (habit.lastCompletedDate === today) return; // already acted today
+
+        const db = await getDatabase();
+        const habitRepo = new HabitRepo(db);
+        await habitRepo.fail(habitId, today);
+
+        set(s => ({
+            user: s.user ? {
+                ...s.user,
+                dailyHabits: (s.user.dailyHabits || []).map(h =>
+                    h.id === habitId ? { ...h, lastCompletedDate: today, streak: 0 } : h
                 ),
             } : null,
         }));
@@ -381,6 +488,27 @@ export const useStore = create<AppState>()((set, get) => ({
         const habitRepo = new HabitRepo(db);
         await habitRepo.delete(habitId);
         set({ user: { ...state.user, dailyHabits: (state.user.dailyHabits || []).filter(h => h.id !== habitId) } });
+    },
+
+    completeMainTask: async (pillar: Pillar) => {
+        const state = get();
+        if (!state.user) return;
+
+        const currentProgress = state.user.mainTaskProgress || { physical: 0, mental: 0, wealth: 0, vitality: 0 };
+        const currentPillarIndex = currentProgress[pillar] || 0;
+        if (currentPillarIndex >= 15) return; // Maxed out
+
+        const newProgress = { ...currentProgress, [pillar]: currentPillarIndex + 1 };
+
+        const db = await getDatabase();
+        const profileRepo = new ProfileRepo(db);
+        await profileRepo.update({ mainTaskProgress: newProgress });
+
+        set({
+            user: { ...state.user, mainTaskProgress: newProgress }
+        });
+
+        await get().addPillarXp(pillar, 50);
     },
 
     // ── Workouts ──────────────────────────────────────────────────
@@ -459,4 +587,24 @@ export const useStore = create<AppState>()((set, get) => ({
     }),
 
     toggleSound: () => set(state => ({ soundEnabled: !state.soundEnabled })),
+
+    setChallengeStartDate: async (date: string) => {
+        const state = get();
+        if (!state.user) return;
+        const db = await getDatabase();
+        const profileRepo = new ProfileRepo(db);
+        await profileRepo.update({ challengeStartDate: date });
+        set({ user: { ...state.user, challengeStartDate: date } });
+    },
+
+    closeLevelUpModal: () => set(state => {
+        const nextQueue = (state.levelUpQueue || []).slice(1);
+        if (nextQueue.length > 0) {
+            setTimeout(() => get().setShowLevelUpModal(true), 300);
+            return { showLevelUpModal: false, levelUpQueue: nextQueue };
+        }
+        return { showLevelUpModal: false, levelUpQueue: [] };
+    }),
+
+    setShowLevelUpModal: (show: boolean) => set({ showLevelUpModal: show }),
 }));

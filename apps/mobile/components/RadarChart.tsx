@@ -90,10 +90,10 @@ export function RadarChart({ data, size = 220 }: Props) {
                     <Circle cx={ptVitality.x} cy={ptVitality.y} r={5} fill="#2A9D8F" stroke="#fff" strokeWidth={2} />
 
                     {/* Labels */}
-                    <SvgText x={center} y={center - maxRadius - 10} fill="#E63946" fontSize={10} fontWeight="900" textAnchor="middle" letterSpacing={1}>VG</SvgText>
-                    <SvgText x={center + maxRadius + 16} y={center + 4} fill="#4A90E2" fontSize={10} fontWeight="900" textAnchor="middle" letterSpacing={1}>SG</SvgText>
-                    <SvgText x={center} y={center + maxRadius + 16} fill="#E88C30" fontSize={10} fontWeight="900" textAnchor="middle" letterSpacing={1}>MC</SvgText>
-                    <SvgText x={center - maxRadius - 16} y={center + 4} fill="#2A9D8F" fontSize={10} fontWeight="900" textAnchor="middle" letterSpacing={1}>GD</SvgText>
+                    <SvgText x={center} y={center - maxRadius - 10} fill="#E63946" fontSize={8} fontWeight="900" textAnchor="middle" letterSpacing={1}>PHYSICAL</SvgText>
+                    <SvgText x={center + maxRadius + 16} y={center + 4} fill="#4A90E2" fontSize={8} fontWeight="900" textAnchor="middle" letterSpacing={1}>MENTAL</SvgText>
+                    <SvgText x={center} y={center + maxRadius + 16} fill="#E88C30" fontSize={8} fontWeight="900" textAnchor="middle" letterSpacing={1}>WEALTH</SvgText>
+                    <SvgText x={center - maxRadius - 16} y={center + 4} fill="#2A9D8F" fontSize={8} fontWeight="900" textAnchor="middle" letterSpacing={1}>VITALITY</SvgText>
                 </Svg>
             </View>
         </View>
