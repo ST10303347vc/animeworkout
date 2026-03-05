@@ -1,30 +1,52 @@
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Modal } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Modal, ImageBackground } from 'react-native';
 import { MotiView } from 'moti';
 import { useStore } from '@/stores/useStore';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
+import { getLevelProgress } from '@limit-break/core';
+import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function SelectModeScreen() {
     const setAppMode = useStore(s => s.setAppMode);
     const setChallengeStartDate = useStore(s => s.setChallengeStartDate);
+    const setSensei = useStore(s => s.setSensei);
     const login = useStore(s => s.login);
     const user = useStore(s => s.user);
     const router = useRouter();
 
     const [modalVisible, setModalVisible] = useState(false);
+    const [lockedModalVisible, setLockedModalVisible] = useState(false);
     const [passcode, setPasscode] = useState('');
     const [error, setError] = useState('');
     const [shakeKey, setShakeKey] = useState(0);
 
-    const handleSelectChapter1 = async () => {
+    const totalXp = user?.globalXp || 0;
+    const progress = getLevelProgress(totalXp);
+    const activeChapter = user?.senseiId; // track chosen chapter
+
+    const handleSelectChapter = async (chapter: 'chapter1' | 'chapter2' | 'chapter3', senseiId: string, isLocked: boolean = false) => {
+        if (isLocked) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            setLockedModalVisible(true);
+            setTimeout(() => {
+                setLockedModalVisible(false);
+            }, 2000);
+            return;
+        }
+
         if (!user) {
             await login('Challenger');
         }
-        // Start the 15-day challenge countdown for Chapter 1
         await setAppMode('custom', ['physical', 'mental', 'wealth', 'vitality']);
-        await setChallengeStartDate(new Date().toISOString().split('T')[0]);
-        router.replace('/(auth)/chapter1-video' as any);
+        await setSensei(senseiId); // Track which path they originated from
+        if (!user?.challengeStartDate) {
+            await setChallengeStartDate(new Date().toISOString().split('T')[0]);
+        }
+
+        // Go straight to the dashboard explicitly by targeting 'tasks' to avoid 404
+        router.replace('/(tabs)/tasks' as any);
     };
 
     const handleSelectInviteOnly = () => {
@@ -65,7 +87,7 @@ export default function SelectModeScreen() {
                                 styles.senseiCardContainer,
                                 pressed && styles.senseiCardPressed,
                             ]}
-                            onPress={handleSelectChapter1}
+                            onPress={() => handleSelectChapter('chapter1', 'sensei_2')}
                         >
                             <MotiView
                                 style={styles.animatedBorder}
@@ -77,24 +99,43 @@ export default function SelectModeScreen() {
                                     loop: true,
                                 }}
                             />
-                            <View style={styles.senseiCard}>
-                                <View style={styles.chapterTagContainer}>
-                                    <Text style={[styles.chapterTagText, { color: '#ff0055' }]}>CHAPTER 1</Text>
-                                </View>
-
-                                <View style={styles.cardContentWrapper}>
-                                    <View style={[styles.avatar, { borderColor: '#ff0055' }]}>
-                                        <Text style={styles.avatarText}>X</Text>
+                            {activeChapter === 'sensei_2' && (
+                                <MotiView
+                                    style={[styles.animatedBorder, { backgroundColor: '#ff0055', shadowColor: '#ff0055' }]}
+                                    from={{ opacity: 0.3, scale: 1 }}
+                                    animate={{ opacity: 0.8, scale: 1.02 }}
+                                    transition={{ type: 'timing', duration: 1500, loop: true }}
+                                />
+                            )}
+                            <ImageBackground source={require('@/assets/challenge-avatar/18.webp')} style={{ borderRadius: 16 }} imageStyle={{ borderRadius: 16 }}>
+                                <View style={[styles.senseiCard, styles.transparentCard]}>
+                                    <View style={styles.chapterTagContainerTasks}>
+                                        <Text style={[styles.chapterTagText, { color: '#ff0055' }]}>CHAPTER 1</Text>
                                     </View>
-                                    <Text style={[styles.senseiName, { color: '#ff0055' }]}>XANDER VOLT</Text>
-                                    <Text style={styles.senseiTitle}>Vanguard Protocol</Text>
-                                    <Text style={styles.senseiQuote}>"Weakness is a choice. Today, you choose strength."</Text>
+
+                                    <View style={styles.cardContentWrapper}>
+                                        <View style={[styles.avatar, { borderColor: '#ff0055' }]}>
+                                            <Text style={styles.avatarText}>X</Text>
+                                        </View>
+                                        <Text style={[styles.senseiName, { color: '#ff0055' }]}>XANDER VOLT</Text>
+                                        <Text style={styles.senseiTitle}>Vanguard Protocol</Text>
+                                        <Text style={styles.senseiQuote}>"Weakness is a choice. Today, you choose strength."</Text>
+                                    </View>
+
+                                    {activeChapter === 'sensei_2' && (
+                                        <View style={styles.progressBarContainer}>
+                                            <Text style={styles.progressLabel}>LEVEL {progress.currentLevel} PROGRESS</Text>
+                                            <View style={styles.progressBarBg}>
+                                                <View style={[styles.progressBarFill, { width: `${progress.progressPercent}%`, backgroundColor: '#ff0055' }]} />
+                                            </View>
+                                        </View>
+                                    )}
                                 </View>
-                            </View>
+                            </ImageBackground>
                         </Pressable>
                     </MotiView>
 
-                    {/* Chapter 2: Tasks (Locked Version) */}
+                    {/* Chapter 2: Becoming Bane */}
                     <MotiView
                         from={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -104,24 +145,99 @@ export default function SelectModeScreen() {
                             style={({ pressed }) => [
                                 styles.senseiCardContainer,
                                 pressed && styles.senseiCardPressed,
+                                { opacity: 0.8 }
                             ]}
+                            onPress={() => handleSelectChapter('chapter2', 'sensei_1', true)}
                         >
-                            <View style={[styles.senseiCard, styles.tasksCard]}>
-                                <View style={styles.chapterTagContainerTasks}>
-                                    <Text style={[styles.chapterTagText, { color: '#00f0ff' }]}>CHAPTER 2</Text>
-                                </View>
-
-                                <View style={styles.cardContentWrapper}>
-                                    <View style={[styles.avatar, { borderColor: '#00f0ff' }]}>
-                                        <Text style={styles.avatarText}>T</Text>
-                                    </View>
-                                    <Text style={[styles.senseiName, { color: '#00f0ff' }]}>TASKS</Text>
-                                    <Text style={styles.senseiTitle}>Beta Access</Text>
-                                    <Text style={styles.senseiQuote}>"Knowledge unapplied is wasted potential."</Text>
-                                </View>
-
-                                <BlurView intensity={20} tint="dark" style={[StyleSheet.absoluteFillObject, { borderRadius: 16, zIndex: 10 }]} />
+                            {activeChapter === 'sensei_1' && (
+                                <MotiView
+                                    style={[styles.animatedBorder, { backgroundColor: '#00f0ff', shadowColor: '#00f0ff' }]}
+                                    from={{ opacity: 0.3, scale: 1 }}
+                                    animate={{ opacity: 0.8, scale: 1.02 }}
+                                    transition={{ type: 'timing', duration: 1500, loop: true }}
+                                />
+                            )}
+                            <View style={styles.lockIconContainer}>
+                                <Ionicons name="lock-closed" size={24} color="#00f0ff" />
                             </View>
+                            <ImageBackground source={require('@/assets/images/BaneWallpaper.webp')} style={{ borderRadius: 16 }} imageStyle={{ borderRadius: 16 }}>
+                                <View style={[styles.senseiCard, styles.transparentCard]}>
+                                    <View style={styles.chapterTagContainerTasks}>
+                                        <Text style={[styles.chapterTagText, { color: '#00f0ff' }]}>CHAPTER 2</Text>
+                                    </View>
+
+                                    <View style={[styles.cardContentWrapper, { alignItems: 'flex-start', marginTop: 30 }]}>
+                                        <Text style={[styles.senseiName, { color: '#00f0ff', marginBottom: -5 }]}>BECOMING</Text>
+                                        <Text style={[styles.senseiName, { color: '#00f0ff' }]}>BANE</Text>
+
+                                        <Text style={[styles.senseiQuote, { textAlign: 'left', marginTop: 12 }]}>"you merely adopted the dark; I was born in it, molded by it. I didn't see the light until I was already a man."</Text>
+                                    </View>
+
+                                    {activeChapter === 'sensei_1' && (
+                                        <View style={styles.progressBarContainer}>
+                                            <Text style={styles.progressLabel}>LEVEL {progress.currentLevel} PROGRESS</Text>
+                                            <View style={styles.progressBarBg}>
+                                                <View style={[styles.progressBarFill, { width: `${progress.progressPercent}%`, backgroundColor: '#00f0ff' }]} />
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    <BlurView intensity={10} tint="dark" style={[StyleSheet.absoluteFillObject, { borderRadius: 16, zIndex: 1 }]} />
+                                </View>
+                            </ImageBackground>
+                        </Pressable>
+                    </MotiView>
+
+                    {/* Chapter 3: Becoming John Wick */}
+                    <MotiView
+                        from={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: 'timing', duration: 500, delay: 500 }}
+                    >
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.senseiCardContainer,
+                                pressed && styles.senseiCardPressed,
+                                { opacity: 0.8 }
+                            ]}
+                            onPress={() => handleSelectChapter('chapter3', 'sensei_4', true)}
+                        >
+                            {activeChapter === 'sensei_4' && (
+                                <MotiView
+                                    style={[styles.animatedBorder, { backgroundColor: '#a855f7', shadowColor: '#a855f7' }]}
+                                    from={{ opacity: 0.3, scale: 1 }}
+                                    animate={{ opacity: 0.8, scale: 1.02 }}
+                                    transition={{ type: 'timing', duration: 1500, loop: true }}
+                                />
+                            )}
+                            <View style={styles.lockIconContainer}>
+                                <Ionicons name="lock-closed" size={24} color="#a855f7" />
+                            </View>
+                            <ImageBackground source={require('@/assets/images/WickWallpaper.webp')} style={{ borderRadius: 16 }} imageStyle={{ borderRadius: 16 }}>
+                                <View style={[styles.senseiCard, styles.transparentCard]}>
+                                    <View style={styles.chapterTagContainerTasks}>
+                                        <Text style={[styles.chapterTagText, { color: '#a855f7' }]}>CHAPTER 3</Text>
+                                    </View>
+
+                                    <View style={[styles.cardContentWrapper, { marginTop: 30 }]}>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                                            <Text style={[styles.senseiName, { color: '#a855f7' }]}>JOHN</Text>
+                                            <Text style={[styles.senseiName, { color: '#a855f7' }]}>WICK</Text>
+                                        </View>
+
+                                        <Text style={[styles.senseiQuote, { width: '100%', textAlign: 'center', marginTop: 12 }]}>"Baba Yaga"</Text>
+                                    </View>
+
+                                    {activeChapter === 'sensei_4' && (
+                                        <View style={styles.progressBarContainer}>
+                                            <Text style={styles.progressLabel}>LEVEL {progress.currentLevel} PROGRESS</Text>
+                                            <View style={styles.progressBarBg}>
+                                                <View style={[styles.progressBarFill, { width: `${progress.progressPercent}%`, backgroundColor: '#a855f7' }]} />
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
+                            </ImageBackground>
                         </Pressable>
                     </MotiView>
                 </View>
@@ -213,6 +329,26 @@ export default function SelectModeScreen() {
                     </MotiView>
                 </View>
             </Modal>
+
+            {/* Locked Chapter Modal */}
+            <Modal
+                visible={lockedModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setLockedModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <MotiView
+                        style={styles.lockedPopup}
+                        from={{ opacity: 0, scale: 0.8, translateY: 20 }}
+                        animate={{ opacity: 1, scale: 1, translateY: 0 }}
+                    >
+                        <Ionicons name="lock-closed" size={48} color="#ff0055" style={{ marginBottom: 16 }} />
+                        <Text style={styles.modalTitle}>CHAPTER LOCKED</Text>
+                        <Text style={styles.modalSubtitle}>COMPLETE PREVIOUS CHAPTERS TO UNLOCK</Text>
+                    </MotiView>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -277,12 +413,36 @@ const styles = StyleSheet.create({
         borderColor: '#2a2a3e',
         position: 'relative',
         overflow: 'hidden',
-        zIndex: 1,
+        zIndex: 2,
     },
     cardContentWrapper: {
         alignItems: 'center',
         width: '100%',
-        zIndex: 1,
+        zIndex: 10,
+    },
+    progressBarContainer: {
+        width: '100%',
+        marginTop: 20,
+        zIndex: 10,
+        alignItems: 'center',
+    },
+    progressLabel: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 2,
+        marginBottom: 8,
+    },
+    progressBarBg: {
+        width: '90%',
+        height: 6,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 3,
+        overflow: 'hidden',
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 3,
     },
     chapterTagContainer: {
         position: 'absolute',
@@ -294,12 +454,15 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 12,
         left: 16,
-        zIndex: 20,
+        zIndex: 10,
     },
     chapterTagText: {
         fontSize: 12,
         fontWeight: '900',
         letterSpacing: 2,
+    },
+    transparentCard: {
+        backgroundColor: 'transparent',
     },
     tasksCard: {
         borderStyle: 'dashed',
@@ -473,5 +636,27 @@ const styles = StyleSheet.create({
     unlockButtonText: {
         color: '#000',
         fontWeight: '900',
+    },
+    lockedPopup: {
+        backgroundColor: '#1a1a2e',
+        borderRadius: 24,
+        padding: 32,
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#ff0055',
+        shadowColor: '#ff0055',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    lockIconContainer: {
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        zIndex: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 20,
+        padding: 8,
     },
 });

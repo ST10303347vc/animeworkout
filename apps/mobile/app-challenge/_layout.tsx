@@ -33,16 +33,16 @@ export default function ChallengeRootLayout() {
 
         const segs = segments as string[];
         const inAuthGroup = segs[0] === '(auth)';
-        const isChapter1Video = segs[1] === 'chapter1-video';
+        const isSelectMode = segs[1] === 'select-mode';
 
         if (!user && !inAuthGroup) {
-            // No user → intro video
-            router.replace('/(auth)/intro-video' as any);
-        } else if (user && !user.settings?.appMode && segs[1] !== 'select-mode') {
+            // No user → go to select mode directly instead of intro video
+            router.replace('/(auth)/select-mode' as any);
+        } else if (user && !user.settings?.appMode && !isSelectMode) {
             // Has user but no mode selected → select mode
             router.replace('/(auth)/select-mode' as any);
-        } else if (user && user.settings?.appMode && inAuthGroup && !isChapter1Video) {
-            // Fully set up → go to main app
+        } else if (user && user.settings?.appMode && inAuthGroup && !isSelectMode) {
+            // Fully set up → go to main app unless they are explicitly choosing a path
             router.replace('/(tabs)/tasks' as any);
         }
     }, [isHydrated, user, segments]);

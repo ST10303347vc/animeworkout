@@ -1,21 +1,33 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Modal } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Modal, ImageBackground } from 'react-native';
 import { MotiView } from 'moti';
 import { useStore } from '@/stores/useStore';
-import { MOCK_SENSEIS } from '@limit-break/core';
+import { MOCK_SENSEIS, getLevelProgress } from '@limit-break/core';
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function SelectSenseiScreen() {
     const setSensei = useStore(s => s.setSensei);
     const user = useStore(s => s.user);
 
     const [modalVisible, setModalVisible] = useState(false);
+    const [lockedModalVisible, setLockedModalVisible] = useState(false);
     const [passcode, setPasscode] = useState('');
     const [error, setError] = useState('');
     const [selectedSecretId, setSelectedSecretId] = useState<string | null>(null);
     const [shakeKey, setShakeKey] = useState(0);
 
-    const handleSelect = async (senseiId: string) => {
+    const handleSelect = async (senseiId: string, isLocked: boolean = false) => {
+        if (isLocked) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            setLockedModalVisible(true);
+            setTimeout(() => {
+                setLockedModalVisible(false);
+            }, 2000);
+            return;
+        }
+
         if (senseiId === 'sensei_3') {
             setSelectedSecretId(senseiId);
             setModalVisible(true);
@@ -42,8 +54,12 @@ export default function SelectSenseiScreen() {
     // Filter and reorder logic
     const mainPaths = [
         MOCK_SENSEIS.find(s => s.id === 'sensei_2'), // Xander Volt first
-        MOCK_SENSEIS.find(s => s.id === 'sensei_1'), // Tasks(beta) second
+        MOCK_SENSEIS.find(s => s.id === 'sensei_1'), // Bane second
+        MOCK_SENSEIS.find(s => s.id === 'sensei_4'), // Wick third
     ].filter(Boolean) as typeof MOCK_SENSEIS;
+
+    const totalXp = user?.globalXp || 0;
+    const progress = getLevelProgress(totalXp);
 
     const inviteOnlyPath = MOCK_SENSEIS.find(s => s.id === 'sensei_3'); // Locked In
 
@@ -63,8 +79,71 @@ export default function SelectSenseiScreen() {
                 {/* MAIN PATHS SECTION */}
                 <View style={styles.grid}>
                     {mainPaths.map((sensei, index) => {
-                        const isTasksMode = sensei.id === 'sensei_1';
+                        const isBane = sensei.id === 'sensei_1';
                         const isXanderVault = sensei.id === 'sensei_2';
+                        const isWick = sensei.id === 'sensei_4';
+
+                        const isActive = user?.senseiId === sensei.id;
+
+                        let wallpaperSource = null;
+                        if (isXanderVault) wallpaperSource = require('@/assets/challenge-avatar/18.webp');
+                        if (isBane) wallpaperSource = require('@/assets/images/BaneWallpaper.webp');
+                        if (isWick) wallpaperSource = require('@/assets/images/WickWallpaper.webp');
+
+                        const contentNode = (
+                            <View style={[
+                                styles.senseiCard,
+                            ]}>
+                                {isXanderVault && (
+                                    <View style={styles.chapterTagContainer}>
+                                        <Text style={[styles.chapterTagText, { color: getSenseiColor(sensei.id) }]}>CHAPTER 1</Text>
+                                    </View>
+                                )}
+                                {isBane && (
+                                    <View style={styles.chapterTagContainerTasks}>
+                                        <Text style={[styles.chapterTagText, { color: getSenseiColor(sensei.id) }]}>CHAPTER 2</Text>
+                                    </View>
+                                )}
+                                {isWick && (
+                                    <View style={styles.chapterTagContainerTasks}>
+                                        <Text style={[styles.chapterTagText, { color: getSenseiColor(sensei.id) }]}>CHAPTER 3</Text>
+                                    </View>
+                                )}
+
+                                <View style={[styles.cardContentWrapper]}>
+                                    <View style={[
+                                        styles.avatar,
+                                        { borderColor: getSenseiColor(sensei.id) }
+                                    ]}>
+                                        <Text style={[styles.avatarText]}>
+                                            {sensei.name[0]}
+                                        </Text>
+                                    </View>
+
+                                    <Text style={[
+                                        styles.senseiName,
+                                        { color: getSenseiColor(sensei.id) }
+                                    ]}>
+                                        {sensei.name.toUpperCase()}
+                                    </Text>
+                                    <Text style={[styles.senseiTitle]}>{sensei.title}</Text>
+                                    <Text style={[styles.senseiQuote]}>{sensei.quote}</Text>
+                                </View>
+
+                                {isActive && (
+                                    <View style={styles.progressBarContainer}>
+                                        <Text style={styles.progressLabel}>LEVEL {progress.currentLevel} PROGRESS</Text>
+                                        <View style={styles.progressBarBg}>
+                                            <View style={[styles.progressBarFill, { width: `${progress.progressPercent}%`, backgroundColor: getSenseiColor(sensei.id) }]} />
+                                        </View>
+                                    </View>
+                                )}
+
+                                {(isBane || isWick) && (
+                                    <BlurView intensity={30} tint="dark" style={[StyleSheet.absoluteFillObject, { borderRadius: 16, zIndex: 1 }]} />
+                                )}
+                            </View>
+                        );
 
                         return (
                             <MotiView
@@ -77,8 +156,9 @@ export default function SelectSenseiScreen() {
                                     style={({ pressed }) => [
                                         styles.senseiCardContainer,
                                         pressed && styles.senseiCardPressed,
+                                        (isBane || isWick) && { opacity: 0.8 }
                                     ]}
-                                    onPress={() => handleSelect(sensei.id)}
+                                    onPress={() => handleSelect(sensei.id, isBane || isWick)}
                                 >
                                     {isXanderVault && (
                                         <MotiView
@@ -92,48 +172,28 @@ export default function SelectSenseiScreen() {
                                             }}
                                         />
                                     )}
-                                    <View style={[
-                                        styles.senseiCard,
-                                        isTasksMode && styles.tasksCard,
-                                    ]}>
+                                    {isActive && !isXanderVault && (
+                                        <MotiView
+                                            style={[styles.animatedBorder, { backgroundColor: getSenseiColor(sensei.id), shadowColor: getSenseiColor(sensei.id) }]}
+                                            from={{ opacity: 0.3, scale: 1 }}
+                                            animate={{ opacity: 0.8, scale: 1.02 }}
+                                            transition={{ type: 'timing', duration: 1500, loop: true }}
+                                        />
+                                    )}
 
-                                        {isXanderVault && (
-                                            <View style={styles.chapterTagContainer}>
-                                                <Text style={[styles.chapterTagText, { color: getSenseiColor(sensei.id) }]}>CHAPTER 1</Text>
-                                            </View>
-                                        )}
-
-                                        {isTasksMode && (
-                                            <View style={styles.chapterTagContainerTasks}>
-                                                <Text style={[styles.chapterTagText, { color: '#00f0ff' }]}>CHAPTER 2</Text>
-                                            </View>
-                                        )}
-
-                                        <View style={[styles.cardContentWrapper]}>
-                                            <View style={[
-                                                styles.avatar,
-                                                { borderColor: getSenseiColor(sensei.id) }
-                                            ]}>
-                                                <Text style={[styles.avatarText]}>
-                                                    {sensei.name[0]}
-                                                </Text>
-                                            </View>
-
-                                            <Text style={[
-                                                styles.senseiName,
-                                                { color: getSenseiColor(sensei.id) }
-                                            ]}>
-                                                {sensei.name.toUpperCase()}
-                                            </Text>
-                                            <Text style={[styles.senseiTitle]}>{sensei.title}</Text>
-                                            <Text style={[styles.senseiQuote]}>{sensei.quote}</Text>
+                                    {(isBane || isWick) && (
+                                        <View style={styles.lockIconContainer}>
+                                            <Ionicons name="lock-closed" size={24} color={getSenseiColor(sensei.id)} />
                                         </View>
+                                    )}
 
-                                        {isTasksMode && (
-                                            <BlurView intensity={30} tint="dark" style={[StyleSheet.absoluteFillObject, { borderRadius: 16, zIndex: 10 }]} />
-                                        )}
-
-                                    </View>
+                                    {wallpaperSource ? (
+                                        <ImageBackground source={wallpaperSource} style={{ borderRadius: 16 }} imageStyle={{ borderRadius: 16 }}>
+                                            {contentNode}
+                                        </ImageBackground>
+                                    ) : (
+                                        contentNode
+                                    )}
                                 </Pressable>
                             </MotiView>
                         );
@@ -239,6 +299,26 @@ export default function SelectSenseiScreen() {
                     </MotiView>
                 </View>
             </Modal>
+
+            {/* Locked Chapter Modal */}
+            <Modal
+                visible={lockedModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setLockedModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <MotiView
+                        style={styles.lockedPopup}
+                        from={{ opacity: 0, scale: 0.8, translateY: 20 }}
+                        animate={{ opacity: 1, scale: 1, translateY: 0 }}
+                    >
+                        <Ionicons name="lock-closed" size={48} color="#ff0055" style={{ marginBottom: 16 }} />
+                        <Text style={styles.modalTitle}>CHAPTER LOCKED</Text>
+                        <Text style={styles.modalSubtitle}>COMPLETE PREVIOUS CHAPTERS TO UNLOCK</Text>
+                    </MotiView>
+                </View>
+            </Modal>
         </>
     );
 }
@@ -248,6 +328,7 @@ function getSenseiColor(id: string): string {
         sensei_1: '#00f0ff',
         sensei_2: '#ff0055',
         sensei_3: '#ffaa00',
+        sensei_4: '#a855f7',
     };
     return colors[id] || '#888';
 }
@@ -312,12 +393,36 @@ const styles = StyleSheet.create({
         borderColor: '#2a2a3e',
         position: 'relative',
         overflow: 'hidden',
-        zIndex: 1, // Stay above the glow
+        zIndex: 2, // Stay above the glow
     },
     cardContentWrapper: {
         alignItems: 'center',
         width: '100%',
-        zIndex: 1,
+        zIndex: 10, // Content must be above BlurView
+    },
+    progressBarContainer: {
+        width: '100%',
+        marginTop: 20,
+        zIndex: 10,
+        alignItems: 'center',
+    },
+    progressLabel: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 2,
+        marginBottom: 8,
+    },
+    progressBarBg: {
+        width: '90%',
+        height: 6,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 3,
+        overflow: 'hidden',
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 3,
     },
     chapterTagContainer: {
         position: 'absolute',
@@ -510,5 +615,27 @@ const styles = StyleSheet.create({
     unlockButtonText: {
         color: '#000',
         fontWeight: '900',
+    },
+    lockedPopup: {
+        backgroundColor: '#1a1a2e',
+        borderRadius: 24,
+        padding: 32,
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#ff0055',
+        shadowColor: '#ff0055',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    lockIconContainer: {
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        zIndex: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 20,
+        padding: 8,
     },
 });

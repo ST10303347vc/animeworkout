@@ -136,6 +136,15 @@ export default function ProfileScreen() {
             {/* Settings */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>⚙️ SETTINGS</Text>
+
+                <Pressable
+                    style={[styles.settingRow, { borderColor: '#888' }]}
+                    onPress={() => router.replace('/(auth)/select-sensei' as any)}
+                >
+                    <Ionicons name="arrow-back" size={20} color="#888" />
+                    <Text style={[styles.settingLabel, { color: '#aaa' }]}>Return to Choose Your Path</Text>
+                </Pressable>
+
                 <Pressable style={styles.settingRow} onPress={toggleSound}>
                     <Ionicons name={soundEnabled ? 'volume-high' : 'volume-mute'} size={20} color="#888" />
                     <Text style={styles.settingLabel}>Sound Effects</Text>

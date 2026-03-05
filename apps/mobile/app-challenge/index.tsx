@@ -1,14 +1,17 @@
 import { Redirect } from 'expo-router';
 import { useStore } from '@/stores/useStore';
 
-export default function ChallengeIndex() {
+export default function Index() {
+    const isHydrated = useStore(s => s.isHydrated);
     const user = useStore(s => s.user);
 
+    if (!isHydrated) return null;
+
     if (!user) {
-        return <Redirect href="/(auth)/intro-video" />;
+        return <Redirect href="/(auth)/select-mode" />;
     }
 
-    if (!user.settings?.appMode) {
+    if (user && !user.settings?.appMode) {
         return <Redirect href="/(auth)/select-mode" />;
     }
 

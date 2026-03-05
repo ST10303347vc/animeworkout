@@ -35,18 +35,19 @@ export default function RootLayout() {
 
     const segs = segments as string[];
     const inAuthGroup = segs[0] === '(auth)';
+    const isSelectSensei = segs[1] === 'select-sensei';
 
     if (!user && !inAuthGroup) {
       // Not logged in → go to login
       router.replace('/(auth)/login' as any);
-    } else if (user && !user.senseiId && segs[1] !== 'select-sensei') {
+    } else if (user && !user.senseiId && !isSelectSensei) {
       // Logged in but no sensei → go to select sensei
       router.replace('/(auth)/select-sensei' as any);
     } else if (user && user.senseiId && !user.settings?.appMode && segs[1] !== 'app-mode') {
       // Logged in, has sensei, NO app mode -> go to app mode selection
       router.replace('/(auth)/app-mode' as any);
-    } else if (user && user.senseiId && user.settings?.appMode && inAuthGroup) {
-      // Fully set up → go to root and let index.tsx route to correct tab
+    } else if (user && user.senseiId && user.settings?.appMode && inAuthGroup && !isSelectSensei) {
+      // Fully set up → go to root and let index.tsx route to correct tab unless intentionally going back
       router.replace('/' as any);
     }
   }, [isHydrated, user, segments]);

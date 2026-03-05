@@ -1,12 +1,19 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert } from 'react-native';
+import { useState, lazy, Suspense } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { MotiView, AnimatePresence as MotiAnimatePresence } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/stores/useStore';
 import { FloatingActionButton } from '@/components/FloatingActionButton';
 import { TaskTimerModal } from '@/components/TaskTimerModal';
 import { CustomSlider } from '@/components/CustomSlider';
+const PdfReaderModal = lazy(() => import('@/components/PdfReaderModal').then(module => ({ default: module.PdfReaderModal })));
 import type { CustomTask } from '@limit-break/core';
+
+const ATOMIC_HABITS_CHAPTERS = [
+    { id: 'ah-intro', title: 'Introduction' },
+    ...Array.from({ length: 20 }).map((_, i) => ({ id: `ah-ch${i + 1}`, title: `Chapter ${i + 1}` })),
+    { id: 'ah-conclusion', title: 'Conclusion' }
+];
 
 export default function MentalScreen() {
     const user = useStore(s => s.user);
@@ -22,6 +29,7 @@ export default function MentalScreen() {
     const [chapters, setChapters] = useState<{ id: string, title: string }[]>([]);
 
     const [timerTask, setTimerTask] = useState<{ task: CustomTask, chapterId?: string } | null>(null);
+    const [readingTask, setReadingTask] = useState<{ task: CustomTask, chapterId: string, chapterTitle: string } | null>(null);
 
     if (!user) return null;
 
@@ -50,6 +58,11 @@ export default function MentalScreen() {
 
     const removeChapter = (id: string) => {
         setChapters(chapters.filter(c => c.id !== id));
+    };
+
+    const handleAddAtomicHabits = () => {
+        addCustomTaskWithChapters('Atomic Habits', 'mental', 5, ATOMIC_HABITS_CHAPTERS);
+        setAddingTask(false);
     };
 
     return (
@@ -116,6 +129,12 @@ export default function MentalScreen() {
                             <Pressable style={styles.submitBtn} onPress={handleAdd} disabled={!title.trim()}>
                                 <Text style={styles.submitText}>ADD QUEST</Text>
                             </Pressable>
+
+                            {/* Book Instead Button */}
+                            <Pressable style={styles.bookBtn} onPress={handleAddAtomicHabits}>
+                                <Ionicons name="book" size={20} color="#00f0ff" />
+                                <Text style={styles.bookBtnText}>Do book instead: Atomic Habits</Text>
+                            </Pressable>
                         </MotiView>
                     )}
                 </MotiAnimatePresence>
@@ -154,8 +173,15 @@ export default function MentalScreen() {
                                             <Pressable style={[styles.chapCheck, chap.isCompleted && { backgroundColor: '#00f0ff' }]} onPress={() => !chap.isCompleted && completeTaskChapter(task.id, chap.id)} />
                                             <Text style={[styles.chapTitle, chap.isCompleted && styles.chapTitleCompleted]}>{chap.title}</Text>
                                             {!chap.isCompleted && (
-                                                <Pressable style={styles.chapTimerBtn} onPress={() => setTimerTask({ task, chapterId: chap.id })}>
-                                                    <Ionicons name="play" size={12} color="#00f0ff" />
+                                                <Pressable style={styles.chapTimerBtn} onPress={() => {
+                                                    const isBook = chap.id.startsWith('ah-') || task.title.includes('Atomic Habits');
+                                                    if (isBook) {
+                                                        setReadingTask({ task, chapterId: chap.id, chapterTitle: chap.title });
+                                                    } else {
+                                                        setTimerTask({ task, chapterId: chap.id });
+                                                    }
+                                                }}>
+                                                    <Ionicons name={chap.id.startsWith('ah-') ? "book" : "play"} size={12} color="#00f0ff" />
                                                 </Pressable>
                                             )}
                                         </View>
@@ -193,6 +219,25 @@ export default function MentalScreen() {
                     onClose={() => setTimerTask(null)}
                 />
             )}
+
+            {/* PDF Reader Modal Overlay */}
+            {readingTask && (
+                <Suspense fallback={
+                    <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.85)' }]}>
+                        <ActivityIndicator size="large" color="#00f0ff" />
+                        <Text style={{ color: '#00f0ff', marginTop: 10, letterSpacing: 2, fontSize: 12 }}>LOADING KNOWLEDGE...</Text>
+                    </View>
+                }>
+                    <PdfReaderModal
+                        chapterTitle={readingTask.chapterTitle}
+                        onComplete={() => {
+                            completeTaskChapter(readingTask.task.id, readingTask.chapterId);
+                            setReadingTask(null);
+                        }}
+                        onClose={() => setReadingTask(null)}
+                    />
+                </Suspense>
+            )}
         </View>
     );
 }
@@ -218,6 +263,8 @@ const styles = StyleSheet.create({
     chapterInput: { flex: 1, backgroundColor: '#0f0f1e', borderWidth: 1, borderColor: '#333', borderRadius: 8, padding: 10, color: '#ddd' },
     submitBtn: { backgroundColor: '#00f0ff', paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 12 },
     submitText: { color: '#000', fontWeight: '900', letterSpacing: 2 },
+    bookBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, backgroundColor: 'rgba(0, 240, 255, 0.1)', paddingVertical: 14, borderRadius: 10, marginTop: 12, borderWidth: 1, borderColor: '#00f0ff', borderStyle: 'dashed' },
+    bookBtnText: { color: '#00f0ff', fontWeight: '700', fontSize: 13, letterSpacing: 1 },
     section: { marginTop: 10 },
     sectionTitle: { color: '#888', fontSize: 11, fontWeight: '700', letterSpacing: 2, marginBottom: 12 },
     emptyText: { color: '#555', fontStyle: 'italic' },

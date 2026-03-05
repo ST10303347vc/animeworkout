@@ -12,12 +12,6 @@ module.exports = ({ config }) => {
     if (appTarget === 'app-tasks') {
         appName = "Limit Break Tasks";
         bundleIdentifier = "com.limitbreak.tasks";
-    } else if (appTarget === 'app-xander') {
-        appName = "Xander Volt RPG";
-        bundleIdentifier = "com.limitbreak.xandervolt";
-    } else if (appTarget === 'app-locked') {
-        appName = "Limit Break Classified";
-        bundleIdentifier = "com.limitbreak.locked";
     } else if (appTarget === 'app-challenge') {
         appName = "15-Day Challenge";
         bundleIdentifier = "com.limitbreak.challenge";
@@ -59,7 +53,6 @@ module.exports = ({ config }) => {
                 }
             ],
             "expo-sqlite",
-            "expo-video",
             [
                 "expo-splash-screen",
                 {

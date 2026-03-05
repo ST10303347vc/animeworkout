@@ -3,16 +3,16 @@ import { Exercise, Sensei, DailyQuest, Workout } from '../types';
 export const MOCK_SENSEIS: Sensei[] = [
     {
         id: 'sensei_1',
-        name: 'Tasks(beta)',
-        title: 'Task Focused',
-        quote: '"Get things done."',
+        name: 'Becoming Bane',
+        title: 'The Blueprint',
+        quote: '"Peace has cost you your strength."',
         imagePath: '',
         glowColor: 'bg-neon-blue text-glow-blue'
     },
     {
         id: 'sensei_2',
         name: 'Xander Volt',
-        title: 'High Energy',
+        title: 'Vanguard Protocol',
         quote: '"Charge up your life."',
         imagePath: '',
         glowColor: 'bg-neon-pink text-glow-pink'
@@ -24,6 +24,14 @@ export const MOCK_SENSEIS: Sensei[] = [
         quote: '"Classified."',
         imagePath: '',
         glowColor: 'bg-neon-gold text-glow-gold'
+    },
+    {
+        id: 'sensei_4',
+        name: 'Becoming John Wick',
+        title: 'Focus & Willpower',
+        quote: '"I need a weapon."',
+        imagePath: '',
+        glowColor: 'bg-neon-purple text-glow-purple'
     }
 ];
 
