@@ -127,6 +127,17 @@ export default function ChallengeTabLayout() {
                                 listeners={{ tabPress: () => Haptics.selectionAsync() }}
                             />
                             <Tabs.Screen
+                                name="reading"
+                                options={{
+                                    title: 'READING',
+                                    tabBarActiveTintColor: '#00f0ff',
+                                    tabBarIcon: ({ color, size }) => (
+                                        <Ionicons name="book" size={size} color={color} />
+                                    ),
+                                }}
+                                listeners={{ tabPress: () => Haptics.selectionAsync() }}
+                            />
+                            <Tabs.Screen
                                 name="main-tasks"
                                 options={{
                                     title: 'MAIN TASKS',

@@ -36,7 +36,7 @@ interface AppState {
     addXp: (amount: number) => Promise<void>;
 
     addCustomTask: (title: string, pillar: Pillar | 'general', difficulty: number) => Promise<void>;
-    addCustomTaskWithChapters: (title: string, pillar: Pillar | 'general', difficulty: number, chapters: { title: string; id: string }[], tags?: string[]) => Promise<void>;
+    addCustomTaskWithChapters: (title: string, pillar: Pillar | 'general', difficulty: number, chapters: { title: string; id: string; xpReward?: number; pdfFile?: string }[], tags?: string[]) => Promise<void>;
     completeCustomTask: (taskId: string, notes?: string) => Promise<void>;
     completeTaskChapter: (taskId: string, chapterId: string, notes?: string) => Promise<void>;
     deleteCustomTask: (taskId: string) => Promise<void>;
@@ -305,9 +305,20 @@ export const useStore = create<AppState>()((set, get) => ({
     addCustomTaskWithChapters: async (title, pillar, difficulty, chapters, tags) => {
         const state = get();
         if (!state.user) return;
-        const baseXp = calcXpFromDifficulty(difficulty);
-        const totalXp = baseXp + (chapters.length * 5);
-        const taskChapters = chapters.map(c => ({ id: c.id, title: c.title, isCompleted: false }));
+
+        // If chapters have individual xpReward, sum them; otherwise use old formula
+        const hasPerChapterXp = chapters.some(c => (c as any).xpReward != null);
+        const totalXp = hasPerChapterXp
+            ? chapters.reduce((sum, c) => sum + ((c as any).xpReward || 0), 0)
+            : calcXpFromDifficulty(difficulty) + (chapters.length * 5);
+
+        const taskChapters = chapters.map(c => ({
+            id: c.id,
+            title: c.title,
+            isCompleted: false,
+            ...(hasPerChapterXp ? { xpReward: (c as any).xpReward || 0 } : {}),
+            ...((c as any).pdfFile ? { pdfFile: (c as any).pdfFile } : {}),
+        }));
 
         const db = await getDatabase();
         const taskRepo = new TaskRepo(db);
@@ -331,7 +342,11 @@ export const useStore = create<AppState>()((set, get) => ({
 
         const updatedChapters = task.chapters.map(c => c.id === chapterId ? { ...c, isCompleted: true, notes } : c);
         const allDone = updatedChapters.every(c => c.isCompleted);
-        const xpPerChapter = Math.ceil(task.xpReward / task.chapters.length);
+
+        // Use per-chapter XP if available, otherwise divide equally
+        const xpForThisChapter = chapter.xpReward != null
+            ? chapter.xpReward
+            : Math.ceil(task.xpReward / task.chapters.length);
 
         const db = await getDatabase();
         const taskRepo = new TaskRepo(db);
@@ -339,11 +354,13 @@ export const useStore = create<AppState>()((set, get) => ({
         if (allDone) await taskRepo.complete(taskId);
 
         // Award XP
-        if (task.pillar !== 'general') {
-            await get().addPillarXp(task.pillar, xpPerChapter);
-        } else {
-            const perPillar = Math.ceil(xpPerChapter / 4);
-            for (const p of ALL_PILLARS) await get().addPillarXp(p, perPillar);
+        if (xpForThisChapter > 0) {
+            if (task.pillar !== 'general') {
+                await get().addPillarXp(task.pillar, xpForThisChapter);
+            } else {
+                const perPillar = Math.ceil(xpForThisChapter / 4);
+                for (const p of ALL_PILLARS) await get().addPillarXp(p, perPillar);
+            }
         }
 
         set(s => ({

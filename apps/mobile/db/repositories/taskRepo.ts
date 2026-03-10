@@ -51,7 +51,7 @@ export class TaskRepo {
         pillar: string;
         difficulty: number;
         xpReward: number;
-        chapters?: { id: string; title: string; isCompleted: boolean }[];
+        chapters?: { id: string; title: string; isCompleted: boolean; xpReward?: number; pdfFile?: string; isSection?: boolean }[];
         tags?: string[];
     }): Promise<CustomTask> {
         const id = `task-${Date.now()}`;

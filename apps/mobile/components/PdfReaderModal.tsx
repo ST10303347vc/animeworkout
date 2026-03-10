@@ -1,107 +1,322 @@
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { MotiView } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import { getChapterText } from '@/constants/chapterTextsHelper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
     chapterTitle: string;
+    xpReward?: number;
+    pdfSource: any;
+    pdfFilename?: string;
     onComplete: () => void;
     onClose: () => void;
 };
 
-export function PdfReaderModal({ chapterTitle, onComplete, onClose }: Props) {
-    return (
-        <View style={StyleSheet.absoluteFill}>
-            <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFillObject} />
-            <MotiView
-                from={{ opacity: 0, scale: 0.9, translateY: 20 }}
-                animate={{ opacity: 1, scale: 1, translateY: 0 }}
-                exit={{ opacity: 0, scale: 0.9, translateY: -20 }}
-                style={styles.modalContent}
-            >
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.title}>READING: {chapterTitle.toUpperCase()}</Text>
-                    <Pressable onPress={onClose} style={styles.closeBtn}>
-                        <Ionicons name="close" size={24} color="#888" />
-                    </Pressable>
-                </View>
+export function PdfReaderModal({ chapterTitle, xpReward, pdfFilename, onComplete, onClose }: Props) {
+    const [scrollProgress, setScrollProgress] = useState(0);
+    const scrollRef = useRef<ScrollView>(null);
+    const insets = useSafeAreaInsets();
 
-                {/* PDF Placeholder */}
-                <View style={styles.pdfPlaceholder}>
-                    <Ionicons name="book-outline" size={48} color="#555" />
-                    <Text style={styles.placeholderText}>
-                        PDF View goes here.{'\n'}
-                        (split PDF connection to handle chunks)
+    const content = pdfFilename ? getChapterText(pdfFilename) : '';
+    const paragraphs = content.split(/\n{2,}/).filter(p => p.trim().length > 0);
+
+    const handleScroll = useCallback((event: any) => {
+        const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+        const pct = contentSize.height > layoutMeasurement.height
+            ? contentOffset.y / (contentSize.height - layoutMeasurement.height)
+            : 1;
+        setScrollProgress(Math.min(1, Math.max(0, pct)));
+    }, []);
+
+    return (
+        <View style={[StyleSheet.absoluteFill, styles.container]}>
+            {/* ── Top Progress Bar ──────────────────────── */}
+            <View style={[styles.progressTrack, { marginTop: insets.top }]}>
+                <MotiView
+                    animate={{ width: `${scrollProgress * 100}%` as any }}
+                    transition={{ type: 'timing', duration: 100 }}
+                    style={styles.progressFill}
+                />
+            </View>
+
+            {/* ── Content Area ─────────────────────────── */}
+            {paragraphs.length > 0 ? (
+                <ScrollView
+                    ref={scrollRef}
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={true}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                    indicatorStyle="black"
+                >
+                    {/* Chapter title */}
+                    <Text style={styles.chapterHeading}>{chapterTitle}</Text>
+                    <View style={styles.divider} />
+
+                    {/* Body paragraphs */}
+                    {paragraphs.map((paragraph, i) => {
+                        const isHeading = paragraph.length < 100 &&
+                            paragraph === paragraph.toUpperCase() &&
+                            !paragraph.startsWith('*');
+                        const isSummaryHeader = paragraph.includes('Chapter Summary');
+                        const isQuote = paragraph.startsWith('"') || paragraph.startsWith('\u201c');
+
+                        if (isSummaryHeader) {
+                            return (
+                                <View key={i}>
+                                    <View style={styles.summaryDivider} />
+                                    <Text style={styles.summaryHeading}>📝 CHAPTER SUMMARY</Text>
+                                </View>
+                            );
+                        }
+
+                        if (isHeading) {
+                            return (
+                                <Text key={i} style={styles.sectionHeading}>
+                                    {paragraph}
+                                </Text>
+                            );
+                        }
+
+                        if (isQuote) {
+                            return (
+                                <View key={i} style={styles.quoteBlock}>
+                                    <View style={styles.quoteLine} />
+                                    <Text style={styles.quoteText}>{paragraph}</Text>
+                                </View>
+                            );
+                        }
+
+                        return (
+                            <Text key={i} style={styles.paragraph}>
+                                {paragraph}
+                            </Text>
+                        );
+                    })}
+
+                    {/* ── Inline "Mark as Read" Button ─────── */}
+                    <View style={styles.inlineCompleteContainer}>
+                        <View style={styles.endDivider} />
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.inlineCompleteBtn,
+                                pressed && styles.inlineCompleteBtnPressed,
+                            ]}
+                            onPress={onComplete}
+                        >
+                            <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                            <Text style={styles.inlineCompleteText}>MARK AS READ</Text>
+                            {xpReward !== undefined && (
+                                <View style={styles.inlineXpBadge}>
+                                    <Ionicons name="flash" size={10} color="#fff" />
+                                    <Text style={styles.inlineXpText}>+{xpReward} XP</Text>
+                                </View>
+                            )}
+                        </Pressable>
+                    </View>
+
+                    <View style={{ height: 100 }} />
+                </ScrollView>
+            ) : (
+                <View style={styles.noContent}>
+                    <Ionicons name="alert-circle-outline" size={48} color="#ccc" />
+                    <Text style={styles.noContentText}>
+                        Content not available for this chapter
                     </Text>
                 </View>
+            )}
 
-                {/* Claim XP Button */}
-                <Pressable style={styles.claimBtn} onPress={onComplete}>
-                    <Text style={styles.claimText}>MARK AS READ (+XP)</Text>
-                </Pressable>
-            </MotiView>
+            {/* ── Tiny Exit Button (bottom-right) ─────── */}
+            <Pressable
+                style={({ pressed }) => [
+                    styles.exitBtn,
+                    { bottom: insets.bottom + 28 },
+                    pressed && styles.exitBtnPressed,
+                ]}
+                onPress={onClose}
+                hitSlop={12}
+            >
+                <Ionicons name="close" size={16} color="#888" />
+            </Pressable>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    modalContent: {
+    container: {
+        backgroundColor: '#FFFFFF',
+    },
+
+    // ── Top Progress Bar
+    progressTrack: {
+        height: 2,
+        backgroundColor: '#e8e8e8',
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: '#333',
+        minWidth: 1,
+    },
+
+    // ── Scroll Content
+    scrollView: {
         flex: 1,
-        marginTop: Platform.OS === 'ios' ? 60 : 40,
-        marginBottom: 40,
-        marginHorizontal: 16,
-        backgroundColor: '#1a1a2e',
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#00f0ff',
-        padding: 20,
-        overflow: 'hidden',
     },
-    header: {
+    scrollContent: {
+        paddingHorizontal: 24,
+        paddingTop: 36,
+        paddingBottom: 20,
+    },
+
+    // ── Chapter Heading
+    chapterHeading: {
+        color: '#1a1a1a',
+        fontSize: 28,
+        fontWeight: '900',
+        letterSpacing: 0.3,
+        lineHeight: 36,
+        marginBottom: 12,
+    },
+    divider: {
+        height: 3,
+        backgroundColor: '#1a1a1a',
+        marginBottom: 28,
+        borderRadius: 2,
+        width: 60,
+    },
+
+    // ── Body Paragraph
+    paragraph: {
+        color: '#2a2a2a',
+        fontSize: 18,
+        lineHeight: 30,
+        marginBottom: 18,
+        fontWeight: '400',
+    },
+
+    // ── Section Heading
+    sectionHeading: {
+        color: '#111111',
+        fontSize: 20,
+        fontWeight: '800',
+        letterSpacing: 1,
+        marginTop: 32,
+        marginBottom: 14,
+        paddingBottom: 8,
+        borderBottomWidth: 2,
+        borderBottomColor: '#e0e0e0',
+    },
+
+    // ── Quotes
+    quoteBlock: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 18,
+        marginLeft: 4,
     },
-    title: {
-        color: '#00f0ff',
-        fontSize: 14,
+    quoteLine: {
+        width: 3,
+        backgroundColor: '#c8a96e',
+        borderRadius: 2,
+        marginRight: 14,
+    },
+    quoteText: {
+        color: '#555555',
+        fontSize: 17,
+        lineHeight: 28,
+        fontStyle: 'italic',
+        flex: 1,
+    },
+
+    // ── Summary Section
+    summaryDivider: {
+        height: 2,
+        backgroundColor: '#e0e0e0',
+        marginTop: 36,
+        marginBottom: 18,
+        borderRadius: 1,
+    },
+    summaryHeading: {
+        color: '#1a1a1a',
+        fontSize: 18,
         fontWeight: '900',
         letterSpacing: 2,
-        flex: 1,
+        marginBottom: 14,
     },
-    closeBtn: {
-        padding: 4,
+
+    // ── Inline Complete Button
+    inlineCompleteContainer: {
+        marginTop: 40,
+        alignItems: 'center',
     },
-    pdfPlaceholder: {
+    endDivider: {
+        height: 1,
+        backgroundColor: '#e0e0e0',
+        width: '100%',
+        marginBottom: 28,
+    },
+    inlineCompleteBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#1a1a1a',
+        paddingHorizontal: 28,
+        paddingVertical: 14,
+        borderRadius: 30,
+    },
+    inlineCompleteBtnPressed: {
+        backgroundColor: '#333',
+        transform: [{ scale: 0.97 }],
+    },
+    inlineCompleteText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+    },
+    inlineXpBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+        marginLeft: 4,
+    },
+    inlineXpText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '800',
+    },
+
+    // ── No content fallback
+    noContent: {
         flex: 1,
-        backgroundColor: '#0f0f1e',
-        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#2a2a3e',
-        borderStyle: 'dashed',
-        marginBottom: 20,
+        gap: 12,
     },
-    placeholderText: {
-        color: '#555',
-        marginTop: 16,
-        textAlign: 'center',
-        fontSize: 12,
-        lineHeight: 20,
-    },
-    claimBtn: {
-        backgroundColor: '#00f0ff',
-        paddingVertical: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    claimText: {
-        color: '#000',
+    noContentText: {
+        color: '#999',
         fontSize: 14,
-        fontWeight: '900',
-        letterSpacing: 2,
+    },
+
+    // ── Tiny Exit Button
+    exitBtn: {
+        position: 'absolute',
+        right: 24,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    exitBtnPressed: {
+        backgroundColor: 'rgba(0, 0, 0, 0.15)',
+        transform: [{ scale: 0.92 }],
     },
 });

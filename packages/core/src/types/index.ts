@@ -25,6 +25,9 @@ export interface TaskChapter {
     isCompleted: boolean;
     timerDuration?: number;
     notes?: string;
+    xpReward?: number;
+    isSection?: boolean;
+    pdfFile?: string;
 }
 
 export interface CustomTask {

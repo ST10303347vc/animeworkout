@@ -51,4 +51,7 @@ config.resolver.blockList = [
     /apps\/web\/.*/,
 ];
 
+// 6. Include PDF files as assets
+config.resolver.assetExts = [...(config.resolver.assetExts || []), 'pdf'];
+
 module.exports = config;
